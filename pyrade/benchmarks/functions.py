@@ -44,20 +44,25 @@ class BenchmarkFunction:
 
 class Sphere(BenchmarkFunction):
     """
-    Sphere function: f(x) = sum(x^2)
+    Sphere function: the simplest continuous optimization benchmark.
     
-    Simple unimodal function. Smooth and convex.
-    Global minimum at origin.
+    A smooth, convex, unimodal function that represents the sum of squares.
+    This is the most basic benchmark function and serves as a baseline for
+    algorithm performance. It has no local minima except the global minimum.
+    
+    Mathematical form:
+    f(x) = sum(x^2)
     
     Parameters
     ----------
     dim : int, default=30
-        Dimensionality
+        Dimensionality of the problem
     
     Properties
     ----------
     Domain: [-100, 100]^d
     Global minimum: f(0, ..., 0) = 0
+    Characteristics: Unimodal, separable, convex, smooth
     """
     
     def __init__(self, dim=30):
@@ -73,20 +78,26 @@ class Sphere(BenchmarkFunction):
 
 class Rastrigin(BenchmarkFunction):
     """
-    Rastrigin function: f(x) = 10*d + sum(x^2 - 10*cos(2*pi*x))
+    Rastrigin function: highly multimodal with regular structure.
     
-    Highly multimodal function with many local minima.
-    Tests ability to escape local optima.
+    A highly multimodal function with a large number of regularly distributed
+    local minima. Based on the Sphere function with added cosine modulation.
+    This function is a common benchmark for testing an algorithm's ability to
+    escape local optima and find the global minimum.
+    
+    Mathematical form:
+    f(x) = 10*d + sum(x^2 - 10*cos(2*pi*x))
     
     Parameters
     ----------
     dim : int, default=30
-        Dimensionality
+        Dimensionality of the problem
     
     Properties
     ----------
     Domain: [-5.12, 5.12]^d
     Global minimum: f(0, ..., 0) = 0
+    Characteristics: Multimodal, separable, regularly structured
     """
     
     def __init__(self, dim=30):
@@ -102,19 +113,26 @@ class Rastrigin(BenchmarkFunction):
 
 class Rosenbrock(BenchmarkFunction):
     """
-    Rosenbrock function: f(x) = sum(100*(x[i+1] - x[i]^2)^2 + (1 - x[i])^2)
+    Rosenbrock function: narrow valley leading to the optimum.
     
-    Valley-shaped function. Convergence to global minimum is difficult.
+    Also known as Rosenbrock's banana function due to its curved valley shape.
+    The global minimum lies inside a long, narrow, parabolic-shaped flat valley.
+    Finding the valley is easy, but converging to the global minimum is difficult.
+    This function tests an algorithm's ability to navigate narrow valleys.
+    
+    Mathematical form:
+    f(x) = sum(100*(x[i+1] - x[i]^2)^2 + (1 - x[i])^2)
     
     Parameters
     ----------
     dim : int, default=30
-        Dimensionality
+        Dimensionality of the problem
     
     Properties
     ----------
     Domain: [-5, 10]^d
     Global minimum: f(1, ..., 1) = 0
+    Characteristics: Unimodal, non-separable, valley-shaped
     """
     
     def __init__(self, dim=30):
@@ -130,21 +148,26 @@ class Rosenbrock(BenchmarkFunction):
 
 class Ackley(BenchmarkFunction):
     """
-    Ackley function: multimodal with many local minima.
+    Ackley function: multimodal with nearly flat outer region.
     
+    A widely used multimodal function characterized by an almost flat outer
+    region and a large hole at the center. The function has many local minima
+    with a single global minimum. The search space is highly multimodal with
+    exponential terms that create the characteristic shape.
+    
+    Mathematical form:
     f(x) = -20*exp(-0.2*sqrt(sum(x^2)/d)) - exp(sum(cos(2*pi*x))/d) + 20 + e
-    
-    Nearly flat outer region with central peak.
     
     Parameters
     ----------
     dim : int, default=30
-        Dimensionality
+        Dimensionality of the problem
     
     Properties
     ----------
     Domain: [-32, 32]^d
     Global minimum: f(0, ..., 0) = 0
+    Characteristics: Multimodal, separable, exponential decay
     """
     
     def __init__(self, dim=30):
@@ -163,19 +186,26 @@ class Ackley(BenchmarkFunction):
 
 class Griewank(BenchmarkFunction):
     """
-    Griewank function: multimodal with many widespread local minima.
+    Griewank function: multimodal with product-based interaction.
     
+    A multimodal function with many widespread local minima that are regularly
+    distributed. The function combines a quadratic term with a product of cosines,
+    creating interdependencies between variables. As the search space dimension
+    increases, the function becomes more difficult to optimize.
+    
+    Mathematical form:
     f(x) = sum(x^2)/4000 - prod(cos(x[i]/sqrt(i+1))) + 1
     
     Parameters
     ----------
     dim : int, default=30
-        Dimensionality
+        Dimensionality of the problem
     
     Properties
     ----------
     Domain: [-600, 600]^d
     Global minimum: f(0, ..., 0) = 0
+    Characteristics: Multimodal, non-separable, product interactions
     """
     
     def __init__(self, dim=30):
@@ -194,21 +224,26 @@ class Griewank(BenchmarkFunction):
 
 class Schwefel(BenchmarkFunction):
     """
-    Schwefel function: deceptive multimodal function.
+    Schwefel function: highly deceptive multimodal function.
     
+    A complex multimodal function where the global minimum is geometrically
+    distant from the next best local minima. This makes the function highly
+    deceptive for search algorithms. The second-best minimum is far from the
+    global optimum, and there is a large number of local minima.
+    
+    Mathematical form:
     f(x) = 418.9829*d - sum(x * sin(sqrt(abs(x))))
-    
-    Global minimum is far from second-best local minima.
     
     Parameters
     ----------
     dim : int, default=30
-        Dimensionality
+        Dimensionality of the problem
     
     Properties
     ----------
     Domain: [-500, 500]^d
     Global minimum: f(420.9687, ..., 420.9687) ≈ 0
+    Characteristics: Multimodal, separable, highly deceptive
     """
     
     def __init__(self, dim=30):
@@ -224,17 +259,27 @@ class Schwefel(BenchmarkFunction):
 
 class Levy(BenchmarkFunction):
     """
-    Levy function: multimodal function.
+    Levy function: multimodal with complex landscape.
+    
+    Named after Levy distribution, this function has a complex multimodal
+    landscape with many local minima. It combines multiple sine and squared
+    terms creating a challenging optimization problem. The function tests
+    an algorithm's ability to handle non-linear interdependencies.
+    
+    Mathematical form:
+    f(x) = sin²(πw₁) + Σ(wᵢ-1)²[1+10sin²(πwᵢ+1)] + (wₐ-1)²[1+sin²(2πwₐ)]
+    where w = 1 + (x-1)/4
     
     Parameters
     ----------
     dim : int, default=30
-        Dimensionality
+        Dimensionality of the problem
     
     Properties
     ----------
     Domain: [-10, 10]^d
     Global minimum: f(1, ..., 1) = 0
+    Characteristics: Multimodal, non-separable, complex landscape
     """
     
     def __init__(self, dim=30):
@@ -256,21 +301,29 @@ class Levy(BenchmarkFunction):
 
 class Michalewicz(BenchmarkFunction):
     """
-    Michalewicz function: multimodal with steep valleys.
+    Michalewicz function: multimodal with steep ridges and valleys.
     
+    A multimodal function with d! local minima, characterized by steep
+    ridges and valleys. The steepness parameter m controls the "sharpness"
+    of the valleys. Larger m values result in more difficult optimization
+    with very narrow valleys. This function is particularly challenging
+    for gradient-based methods.
+    
+    Mathematical form:
     f(x) = -sum(sin(x[i]) * sin((i+1)*x[i]^2/pi)^(2*m))
     
     Parameters
     ----------
     dim : int, default=30
-        Dimensionality
+        Dimensionality of the problem
     m : int, default=10
-        Steepness parameter
+        Steepness parameter (higher = steeper valleys)
     
     Properties
     ----------
     Domain: [0, pi]^d
-    Global minimum: depends on dimension
+    Global minimum: depends on dimension (approximately -1.8*d for d≤10)
+    Characteristics: Multimodal, non-separable, steep valleys
     """
     
     def __init__(self, dim=30, m=10):
@@ -288,19 +341,25 @@ class Michalewicz(BenchmarkFunction):
 
 class Zakharov(BenchmarkFunction):
     """
-    Zakharov function: unimodal function.
+    Zakharov function: unimodal function with plate-shaped surface.
     
+    A smooth, unimodal function that combines quadratic and quartic terms.
+    The function has a single global minimum at the origin and becomes
+    increasingly difficult to optimize as dimensionality increases.
+    
+    Mathematical form:
     f(x) = sum(x^2) + (sum(0.5*i*x))^2 + (sum(0.5*i*x))^4
     
     Parameters
     ----------
     dim : int, default=30
-        Dimensionality
+        Dimensionality of the problem
     
     Properties
     ----------
     Domain: [-5, 10]^d
     Global minimum: f(0, ..., 0) = 0
+    Characteristics: Unimodal, smooth, plate-shaped
     """
     
     def __init__(self, dim=30):
@@ -315,3 +374,77 @@ class Zakharov(BenchmarkFunction):
         sum1 = np.sum(x**2)
         sum2 = np.sum(0.5 * i * x)
         return sum1 + sum2**2 + sum2**4
+
+
+class Easom(BenchmarkFunction):
+    """
+    Easom function: unimodal function with large flat region.
+    
+    A deceptive function with a single sharp global minimum surrounded by
+    a vast flat plateau. This function tests an algorithm's ability to
+    navigate flat landscapes and exploit small promising regions.
+    
+    Mathematical form:
+    f(x) = -cos(x1)*cos(x2)*exp(-((x1-pi)^2 + (x2-pi)^2))
+    
+    Parameters
+    ----------
+    dim : int, default=2
+        Dimensionality (typically 2D)
+    
+    Properties
+    ----------
+    Domain: [-100, 100]^d
+    Global minimum: f(pi, pi, ..., pi) = -1
+    Characteristics: Unimodal, deceptive, large flat region
+    """
+    
+    def __init__(self, dim=2):
+        super().__init__(dim)
+        self.bounds = (-100, 100)
+        self.optimum = -1.0
+        self.optimum_location = np.full(dim, np.pi)
+    
+    def __call__(self, x):
+        """Evaluate Easom function."""
+        # For 2D: standard Easom
+        if len(x) == 2:
+            return -np.cos(x[0]) * np.cos(x[1]) * np.exp(-((x[0]-np.pi)**2 + (x[1]-np.pi)**2))
+        # For higher dimensions: generalized Easom
+        cos_prod = np.prod(np.cos(x))
+        exp_term = np.exp(-np.sum((x - np.pi)**2))
+        return -cos_prod * exp_term
+
+
+class StyblinskiTang(BenchmarkFunction):
+    """
+    Styblinski-Tang function: multimodal with single global minimum.
+    
+    A relatively simple multimodal function where each variable contributes
+    independently to the objective value. Despite having multiple local minima,
+    it has a single global minimum that is relatively easy to find.
+    
+    Mathematical form:
+    f(x) = sum(x^4 - 16*x^2 + 5*x) / 2
+    
+    Parameters
+    ----------
+    dim : int, default=30
+        Dimensionality of the problem
+    
+    Properties
+    ----------
+    Domain: [-5, 5]^d
+    Global minimum: f(-2.903534, ..., -2.903534) ≈ -39.16599*d
+    Characteristics: Multimodal, separable, symmetric
+    """
+    
+    def __init__(self, dim=30):
+        super().__init__(dim)
+        self.bounds = (-5, 5)
+        self.optimum = -39.16599 * dim
+        self.optimum_location = np.full(dim, -2.903534)
+    
+    def __call__(self, x):
+        """Evaluate Styblinski-Tang function."""
+        return np.sum(x**4 - 16*x**2 + 5*x) / 2
