@@ -26,7 +26,8 @@ Example usage:
 >>> print(f"Best fitness: {result['best_fitness']}")
 """
 
-__version__ = "1.0.0"
+from pyrade.__version__ import __version__
+
 __author__ = "PyRADE Contributors"
 
 from pyrade.core.algorithm import DifferentialEvolution
