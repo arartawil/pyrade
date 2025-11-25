@@ -14,13 +14,13 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="pyrade",
-    version="1.0.0",
+    version="0.1.0",
     author="PyRADE Contributors",
-    author_email="",
+    author_email="arartawil@gmail.com",
     description="High-performance, modular Differential Evolution optimization",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/pyrade",
+    url="https://github.com/arartawil/pyrade",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -36,6 +36,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     python_requires=">=3.7",
     install_requires=requirements,
@@ -50,7 +51,8 @@ setup(
     },
     keywords="optimization, differential evolution, evolutionary algorithms, metaheuristics",
     project_urls={
-        "Bug Reports": "https://github.com/yourusername/pyrade/issues",
-        "Source": "https://github.com/yourusername/pyrade",
+        "Bug Reports": "https://github.com/arartawil/pyrade/issues",
+        "Source": "https://github.com/arartawil/pyrade",
+        "Documentation": "https://github.com/arartawil/pyrade/blob/main/API_DOCUMENTATION.md",
     },
 )
