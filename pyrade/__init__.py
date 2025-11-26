@@ -38,11 +38,13 @@ from pyrade.visualization import (
     calculate_igd,
     is_pareto_efficient
 )
+from pyrade.experiments import ExperimentManager
 
 __all__ = [
     "DifferentialEvolution",
     "Population",
     "OptimizationVisualizer",
+    "ExperimentManager",
     "calculate_hypervolume_2d",
     "calculate_igd",
     "is_pareto_efficient",
