@@ -8,6 +8,13 @@ from pyrade.benchmarks.functions import (
     Rastrigin,
     Rosenbrock,
     Ackley,
+    Griewank,
+    Schwefel,
+    Levy,
+    Michalewicz,
+    Zakharov,
+    Easom,
+    StyblinskiTang,
 )
 
 __all__ = [
@@ -16,4 +23,11 @@ __all__ = [
     "Rastrigin",
     "Rosenbrock",
     "Ackley",
+    "Griewank",
+    "Schwefel",
+    "Levy",
+    "Michalewicz",
+    "Zakharov",
+    "Easom",
+    "StyblinskiTang",
 ]

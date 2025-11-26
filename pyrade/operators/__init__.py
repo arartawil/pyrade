@@ -13,10 +13,13 @@ from pyrade.operators.crossover import (
     CrossoverStrategy,
     BinomialCrossover,
     ExponentialCrossover,
+    UniformCrossover,
 )
 from pyrade.operators.selection import (
     SelectionStrategy,
     GreedySelection,
+    TournamentSelection,
+    ElitistSelection,
 )
 
 __all__ = [
@@ -28,6 +31,9 @@ __all__ = [
     "CrossoverStrategy",
     "BinomialCrossover",
     "ExponentialCrossover",
+    "UniformCrossover",
     "SelectionStrategy",
     "GreedySelection",
+    "TournamentSelection",
+    "ElitistSelection",
 ]
