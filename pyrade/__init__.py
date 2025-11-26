@@ -32,8 +32,18 @@ __author__ = "PyRADE Contributors"
 
 from pyrade.core.algorithm import DifferentialEvolution
 from pyrade.core.population import Population
+from pyrade.visualization import (
+    OptimizationVisualizer,
+    calculate_hypervolume_2d,
+    calculate_igd,
+    is_pareto_efficient
+)
 
 __all__ = [
     "DifferentialEvolution",
     "Population",
+    "OptimizationVisualizer",
+    "calculate_hypervolume_2d",
+    "calculate_igd",
+    "is_pareto_efficient",
 ]
