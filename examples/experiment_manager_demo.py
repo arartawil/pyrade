@@ -50,14 +50,10 @@ def example_custom_selection():
         seed=42
     )
     
-    # Run experiments
-    exp.run_experiments(verbose=True)
-    
-    # Generate specific plots
-    exp.plot_convergence_curves()
-    exp.plot_boxplots()
-    
-    # Export in specific formats
+    # Run experiments and automatically generate visualizations
+    exp.run_experiments(verbose=True, apply_visualizations=True)
+
+    # Export in specific formats (visualizations already saved)
     exp.export_results(formats=['csv', 'json'])
 
 
@@ -291,7 +287,7 @@ if __name__ == "__main__":
     # Run examples (uncomment the ones you want to try)
     
     # Quick tests
-    example_basic_usage()
+    #example_basic_usage()
     # example_quick_comparison()
     
     # Detailed examples
@@ -300,7 +296,7 @@ if __name__ == "__main__":
     # example_accessing_raw_data()
     
     # Full benchmarks
-    # example_all_benchmarks()
+    example_all_benchmarks()
     
     # Advanced
     # example_high_dimensional()

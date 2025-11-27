@@ -48,6 +48,11 @@ class ExperimentManager:
         Mutation factor
     CR : float, default=0.9
         Crossover rate
+    mutation : str, callable, or instance, optional
+        Mutation strategy to use. Can be the name of a strategy from
+        `pyrade.operators` (e.g., 'DErand1'), a callable/class that
+        can be instantiated with `F=...`, or an already-created
+        mutation instance. If `None`, defaults to `DErand1(F=0.8)`.
     experiment_name : str, optional
         Custom experiment name (default: auto-generated timestamp)
     base_folder : str, default='experiments'
@@ -104,13 +109,14 @@ class ExperimentManager:
     
     def __init__(
         self,
-        benchmarks: Union[List[str], List[Callable]] = None,
+        benchmarks: Union[List[str], List[Callable], str, Callable] = None,
         dimensions: int = 10,
         n_runs: int = 30,
         population_size: int = 50,
         max_iterations: int = 100,
         F: float = 0.8,
         CR: float = 0.9,
+        mutation: Optional[Union[str, Callable, object]] = None,
         experiment_name: Optional[str] = None,
         base_folder: str = 'experiments',
         seed: Optional[int] = None
@@ -123,6 +129,10 @@ class ExperimentManager:
         self.max_iterations = max_iterations
         self.F = F
         self.CR = CR
+        # Mutation strategy: can be a string (name from pyrade.operators),
+        # a callable/class that returns an instance, or an instance itself.
+        # If None, default to DErand1 during runs.
+        self.mutation = mutation
         self.seed = seed if seed is not None else np.random.randint(0, 10000)
         
         # Setup benchmark functions
@@ -130,7 +140,11 @@ class ExperimentManager:
         if benchmarks is None:
             # Use all available benchmarks
             benchmarks = list(self.AVAILABLE_BENCHMARKS.keys())
-        
+
+        # Allow single callable or single string to be provided
+        if not isinstance(benchmarks, (list, tuple)):
+            benchmarks = [benchmarks]
+
         for bench in benchmarks:
             if isinstance(bench, str):
                 if bench not in self.AVAILABLE_BENCHMARKS:
@@ -183,14 +197,63 @@ class ExperimentManager:
             'max_iterations': self.max_iterations,
             'F': self.F,
             'CR': self.CR,
-            'seed': self.seed
+            'seed': self.seed,
+            'mutation': str(self.mutation) if self.mutation is not None else None
         }
         
         config_file = self.experiment_folder / 'config.json'
         with open(config_file, 'w') as f:
             json.dump(config, f, indent=2)
+
+    def _build_mutation_instance(self):
+        """Return a mutation strategy instance based on `self.mutation`.
+
+        Supports:
+        - None: returns default `DErand1(F=self.F)`
+        - string: resolved from `pyrade.operators` by name
+        - callable/class: attempted to instantiate with `F=self.F`, or called without args
+        - instance: returned as-is
+        """
+        # Default
+        if self.mutation is None:
+            return DErand1(F=self.F)
+
+        # If string, resolve from module
+        if isinstance(self.mutation, str):
+            try:
+                import pyrade.operators as ops
+                if hasattr(ops, self.mutation):
+                    cls = getattr(ops, self.mutation)
+                    try:
+                        return cls(F=self.F)
+                    except Exception:
+                        try:
+                            return cls()
+                        except Exception:
+                            warnings.warn(f"Could not instantiate mutation '{self.mutation}', using default")
+                            return DErand1(F=self.F)
+                else:
+                    warnings.warn(f"Mutation strategy '{self.mutation}' not found in pyrade.operators; using default")
+                    return DErand1(F=self.F)
+            except Exception:
+                warnings.warn(f"Error loading pyrade.operators; using default mutation")
+                return DErand1(F=self.F)
+
+        # If callable/class, try to instantiate
+        if callable(self.mutation):
+            try:
+                return self.mutation(F=self.F)
+            except TypeError:
+                try:
+                    return self.mutation()
+                except Exception:
+                    # If it's already an instance disguised as callable, fallback
+                    return self.mutation
+
+        # Otherwise, assume instance
+        return self.mutation
     
-    def run_experiments(self, verbose: bool = True):
+    def run_experiments(self, verbose: bool = True, apply_visualizations: bool = False):
         """
         Run all experiments.
         
@@ -238,6 +301,13 @@ class ExperimentManager:
             print(f"ALL EXPERIMENTS COMPLETED in {duration}")
             print("=" * 80 + "\n")
         
+        # Optionally generate all visualizations immediately after running
+        if apply_visualizations:
+            try:
+                self.plot_all()
+            except Exception as e:
+                warnings.warn(f"plot_all() failed after experiments: {e}")
+
         return self.results
     
     def _run_benchmark(self, bench_name: str, func: Callable, bounds: list, verbose: bool = False):
@@ -248,11 +318,14 @@ class ExperimentManager:
         execution_times = []
         
         for run in range(self.n_runs):
+            # Build mutation instance (respecting user config)
+            mutation_instance = self._build_mutation_instance()
+
             # Run single optimization
             de = DifferentialEvolution(
                 objective_func=func,
                 bounds=np.array(bounds),
-                mutation=DErand1(F=self.F),
+                mutation=mutation_instance,
                 crossover=BinomialCrossover(CR=self.CR),
                 pop_size=self.population_size,
                 max_iter=self.max_iterations,
