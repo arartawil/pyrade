@@ -6,6 +6,7 @@ for running, visualizing, and exporting benchmark experiments.
 """
 
 from pyrade import ExperimentManager
+from pyrade.operators import DEbest1, DErand1
 
 
 def example_basic_usage():
@@ -165,6 +166,61 @@ def example_custom_function():
         experiment_name='custom_function_test'
     )
     
+    exp.run_complete_pipeline()
+
+
+def example_custom_mutation():
+    """Demonstrate passing different mutation strategies to ExperimentManager."""
+    print("\n" + "=" * 80)
+    print("EXAMPLE 6b: Custom Mutation Strategies")
+    print("=" * 80 + "\n")
+
+    # Use built-in strategy by name
+    exp1 = ExperimentManager(
+        benchmarks=['Sphere'],
+        dimensions=10,
+        n_runs=5,
+        population_size=40,
+        max_iterations=80,
+        mutation='DEbest1',  # resolved from pyrade.operators
+        experiment_name='mutation_by_name'
+    )
+    exp1.run_complete_pipeline()
+
+    # Use an instance of a mutation strategy
+    exp2 = ExperimentManager(
+        benchmarks=['Rastrigin'],
+        dimensions=10,
+        n_runs=5,
+        population_size=40,
+        max_iterations=80,
+        mutation=DErand1(F=0.6),  # pass an instance
+        experiment_name='mutation_by_instance'
+    )
+    exp2.run_complete_pipeline()
+
+
+def example_custom_pop_itr_objf():
+    """Demonstrate a custom objective function with custom population and iterations."""
+    print("\n" + "=" * 80)
+    print("EXAMPLE 9: Custom Population, Iterations, and Objective Function")
+    print("=" * 80 + "\n")
+
+    # Define a custom objective (shifted quartic + sinusoid)
+    def custom_obj(x):
+        # x will be a numpy array provided by DifferentialEvolution
+        return np.sum((x - 1.5) ** 4) + np.sum(5.0 * np.sin(2.0 * x))
+
+    # Use the custom objective with an explicit population and iteration count
+    exp = ExperimentManager(
+        benchmarks=[custom_obj],
+        dimensions=8,
+        n_runs=6,
+        population_size=120,   # larger population
+        max_iterations=250,    # more iterations
+        experiment_name='custom_pop_itr_objf'
+    )
+
     exp.run_complete_pipeline()
 
 
