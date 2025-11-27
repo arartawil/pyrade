@@ -354,6 +354,7 @@ python custom_strategy.py
 python benchmark_comparison.py
 ```
 
+
 **What you'll learn:**
 - How to optimize different types of functions
 - Using callbacks for monitoring
@@ -361,6 +362,59 @@ python benchmark_comparison.py
 - Comparing different strategies
 - Creating custom operators
 - Performance optimization techniques
+
+## 🧪 Experiment Manager & Output Structure
+
+PyRADE includes a powerful **ExperimentManager** for automated benchmarking, visualization, and data export.
+
+### How It Works
+
+- Selects and runs multiple benchmark functions with configurable parameters (runs, population, iterations, dimensions)
+- Automatically generates and saves:
+    - Convergence plots (per function and combined)
+    - Fitness boxplots
+    - Raw data (NumPy arrays, CSVs)
+    - Summary statistics and rankings
+    - Timestamped experiment folders for easy organization
+
+### Output Folder Structure
+
+```
+experiment_YYYY-MM-DD_HH-MM-SS/
+├── convergence_plots/
+│   ├── sphere_convergence.png
+│   ├── rastrigin_convergence.png
+│   └── ... (one per function)
+├── all_functions_convergence.png
+├── fitness_boxplot.png
+├── statistics.txt
+├── csv_exports/
+│   ├── sphere_detailed.csv
+│   ├── summary_statistics.csv
+│   └── ... (per function)
+├── raw_data/
+│   ├── sphere_convergence.npy
+│   ├── sphere_final_fitness.npy
+│   └── ... (per function)
+└── config.json
+```
+
+### Example Usage
+
+```python
+from pyrade import ExperimentManager
+
+manager = ExperimentManager(
+        benchmarks=['Sphere', 'Rastrigin', 'Rosenbrock'],
+        n_runs=30,
+        population_size=50,
+        max_iterations=100,
+        dimensions=10
+)
+manager.run_complete_pipeline()
+```
+
+All results are saved in a new folder named with the date and time of the experiment.
 
 ## 🎓 Creating Custom Strategies
 
