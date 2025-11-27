@@ -74,7 +74,7 @@ class OptimizationVisualizer:
         Returns
         -------
         fig : matplotlib.figure.Figure
-            The created figure
+            The created figure   
         """
         fig, ax = plt.subplots(figsize=self.figsize)
         
