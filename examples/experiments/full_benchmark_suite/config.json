@@ -1,0 +1,25 @@
+{
+  "experiment_name": "full_benchmark_suite",
+  "timestamp": "2025-11-27T16:21:03.295191",
+  "benchmarks": [
+    "Sphere",
+    "Rastrigin",
+    "Rosenbrock",
+    "Ackley",
+    "Griewank",
+    "Schwefel",
+    "Levy",
+    "Michalewicz",
+    "Zakharov",
+    "Easom",
+    "StyblinskiTang"
+  ],
+  "dimensions": 10,
+  "n_runs": 20,
+  "population_size": 50,
+  "max_iterations": 100,
+  "F": 0.8,
+  "CR": 0.9,
+  "seed": 4420,
+  "mutation": null
+}

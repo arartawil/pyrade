@@ -8,6 +8,9 @@ from pyrade.operators.mutation import (
     DEbest1,
     DEcurrentToBest1,
     DErand2,
+    DEbest2,
+    DEcurrentToRand1,
+    DERandToBest1,
 )
 from pyrade.operators.crossover import (
     CrossoverStrategy,
@@ -28,6 +31,9 @@ __all__ = [
     "DEbest1",
     "DEcurrentToBest1",
     "DErand2",
+    "DEbest2",
+    "DEcurrentToRand1",
+    "DERandToBest1",
     "CrossoverStrategy",
     "BinomialCrossover",
     "ExponentialCrossover",

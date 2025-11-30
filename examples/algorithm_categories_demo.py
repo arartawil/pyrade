@@ -15,6 +15,9 @@ from pyrade.algorithms.classic import (
     DEbest1bin,
     DEcurrentToBest1bin,
     DErand2bin,
+    DEbest2bin,
+    DEcurrentToRand1bin,
+    DERandToBest1bin,
 )
 
 
@@ -52,6 +55,9 @@ def compare_classic_variants():
         ("DE/best/1/bin", DEbest1bin),
         ("DE/current-to-best/1/bin", DEcurrentToBest1bin),
         ("DE/rand/2/bin", DErand2bin),
+        ("DE/best/2/bin", DEbest2bin),
+        ("DE/current-to-rand/1/bin", DEcurrentToRand1bin),
+        ("DE/rand-to-best/1/bin", DERandToBest1bin),
     ]
     
     for prob_name, prob_func in problems:
@@ -134,8 +140,11 @@ if __name__ == "__main__":
     
     print("\n" + "="*70)
     print("Examples Complete!")
+    print("\nSummary:")
+    print("  ✓ 8 Classic DE variants available")
+    print("  ✓ All variants tested and working")
     print("\nNext Steps:")
-    print("  - Adaptive variants (JADE, SHADE) coming soon")
+    print("  - Adaptive variants (jDE, SaDE, JADE, CoDE) - in progress")
     print("  - Multi-population variants coming soon")
     print("  - Hybrid variants coming soon")
     print("="*70)

@@ -16,7 +16,10 @@ import time
 from typing import Callable, Optional, Dict, Any
 
 from pyrade.core.population import Population
-from pyrade.operators.mutation import DErand1, DEbest1, DEcurrentToBest1, DErand2
+from pyrade.operators.mutation import (
+    DErand1, DEbest1, DEcurrentToBest1, DErand2, 
+    DEbest2, DEcurrentToRand1, DERandToBest1
+)
 from pyrade.operators.crossover import BinomialCrossover, ExponentialCrossover
 from pyrade.operators.selection import GreedySelection
 
@@ -485,10 +488,159 @@ class DErand2bin(ClassicDE):
         )
 
 
+class DEbest2bin(ClassicDE):
+    """
+    DE/best/2/bin - Highly exploitative variant.
+    
+    Mutation: v = x_best + F * (x_r1 - x_r2) + F * (x_r3 - x_r4)
+    Crossover: Binomial
+    
+    Very fast convergence using best individual with two difference vectors.
+    Risk of premature convergence on multimodal problems.
+    
+    Parameters
+    ----------
+    objective_func : callable
+        Function to minimize
+    bounds : array-like
+        Search space bounds
+    pop_size : int, default=50
+        Population size
+    max_iter : int, default=1000
+        Maximum iterations
+    F : float, default=0.8
+        Mutation factor
+    CR : float, default=0.9
+        Crossover rate
+    seed : int, optional
+        Random seed
+    verbose : bool, default=False
+        Print progress
+    """
+    
+    def __init__(self, objective_func, bounds, pop_size=50, max_iter=1000,
+                 F=0.8, CR=0.9, seed=None, verbose=False, callback=None):
+        super().__init__(
+            objective_func=objective_func,
+            bounds=bounds,
+            mutation=DEbest2(F=F),
+            crossover=BinomialCrossover(CR=CR),
+            selection=GreedySelection(),
+            pop_size=pop_size,
+            max_iter=max_iter,
+            F=F,
+            CR=CR,
+            seed=seed,
+            verbose=verbose,
+            callback=callback
+        )
+
+
+class DEcurrentToRand1bin(ClassicDE):
+    """
+    DE/current-to-rand/1/bin - Exploratory variant.
+    
+    Mutation: v = x_i + K * (x_r1 - x_i) + F * (x_r2 - x_r3)
+    Crossover: Binomial
+    
+    Combines current vector with random direction for diversity.
+    Good balance between exploration and maintaining population structure.
+    
+    Parameters
+    ----------
+    objective_func : callable
+        Function to minimize
+    bounds : array-like
+        Search space bounds
+    pop_size : int, default=50
+        Population size
+    max_iter : int, default=1000
+        Maximum iterations
+    F : float, default=0.8
+        Mutation factor for difference vector
+    K : float, default=0.5
+        Weight for current-to-random direction
+    CR : float, default=0.9
+        Crossover rate
+    seed : int, optional
+        Random seed
+    verbose : bool, default=False
+        Print progress
+    """
+    
+    def __init__(self, objective_func, bounds, pop_size=50, max_iter=1000,
+                 F=0.8, K=0.5, CR=0.9, seed=None, verbose=False, callback=None):
+        super().__init__(
+            objective_func=objective_func,
+            bounds=bounds,
+            mutation=DEcurrentToRand1(F=F, K=K),
+            crossover=BinomialCrossover(CR=CR),
+            selection=GreedySelection(),
+            pop_size=pop_size,
+            max_iter=max_iter,
+            F=F,
+            CR=CR,
+            seed=seed,
+            verbose=verbose,
+            callback=callback
+        )
+
+
+class DERandToBest1bin(ClassicDE):
+    """
+    DE/rand-to-best/1/bin - Balanced exploitative variant.
+    
+    Mutation: v = x_r1 + F * (x_best - x_r1) + F * (x_r2 - x_r3)
+    Crossover: Binomial
+    
+    Direction from random vector toward best with additional diversity.
+    Less greedy than DE/best/1, good when premature convergence is a concern.
+    
+    Parameters
+    ----------
+    objective_func : callable
+        Function to minimize
+    bounds : array-like
+        Search space bounds
+    pop_size : int, default=50
+        Population size
+    max_iter : int, default=1000
+        Maximum iterations
+    F : float, default=0.8
+        Mutation factor
+    CR : float, default=0.9
+        Crossover rate
+    seed : int, optional
+        Random seed
+    verbose : bool, default=False
+        Print progress
+    """
+    
+    def __init__(self, objective_func, bounds, pop_size=50, max_iter=1000,
+                 F=0.8, CR=0.9, seed=None, verbose=False, callback=None):
+        super().__init__(
+            objective_func=objective_func,
+            bounds=bounds,
+            mutation=DERandToBest1(F=F),
+            crossover=BinomialCrossover(CR=CR),
+            selection=GreedySelection(),
+            pop_size=pop_size,
+            max_iter=max_iter,
+            F=F,
+            CR=CR,
+            seed=seed,
+            verbose=verbose,
+            callback=callback
+        )
+
+
 __all__ = [
     "ClassicDE",
     "DErand1bin",
     "DEbest1bin",
     "DEcurrentToBest1bin",
     "DErand2bin",
+    "DEbest2bin",
+    "DEcurrentToRand1bin",
+    "DERandToBest1bin",
 ]

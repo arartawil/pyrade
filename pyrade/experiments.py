@@ -545,11 +545,70 @@ class ExperimentManager:
         print("\n" + "=" * 80)
         print("GENERATING ALL VISUALIZATIONS")
         print("=" * 80 + "\n")
-        
+        # Core plots
         self.plot_convergence_curves(save=True)
         self.plot_combined_convergence(save=True)
         self.plot_boxplots(save=True, split_scales=True)
-        
+
+        # Additional parameter-space visualizations when data is available
+        print("Generating parameter-space visualizations where applicable...")
+        param_folder = self.experiment_folder / "parameter_visualizations"
+        param_folder.mkdir(exist_ok=True)
+
+        for bench_name, data in self.results.items():
+            try:
+                params = np.array(data.get('best_solutions'))  # shape: (n_runs, dim)
+                fitness = np.array(data.get('final_fitness'))
+                if params is None or fitness is None:
+                    continue
+
+                # Parameter heatmap
+                try:
+                    heatmap_path = param_folder / f"{bench_name.lower()}_parameter_heatmap.png"
+                    self.viz.plot_parameter_heatmap(
+                        parameters=params,
+                        fitness=fitness,
+                        param_names=[f'X{i+1}' for i in range(params.shape[1])],
+                        title=f"{bench_name} Parameter Heatmap",
+                        save_path=heatmap_path
+                    )
+                except Exception as e:
+                    warnings.warn(f"Failed to create parameter heatmap for {bench_name}: {e}")
+
+                # Parallel coordinates
+                try:
+                    pcp_path = param_folder / f"{bench_name.lower()}_parallel_coordinates.png"
+                    self.viz.plot_parallel_coordinates(
+                        parameters=params,
+                        fitness=fitness,
+                        param_names=[f'X{i+1}' for i in range(params.shape[1])],
+                        normalize=True,
+                        title=f"{bench_name} Parallel Coordinates",
+                        save_path=pcp_path
+                    )
+                except Exception as e:
+                    warnings.warn(f"Failed to create parallel coordinates for {bench_name}: {e}")
+
+                # Contour landscape (only for 2D problems)
+                try:
+                    if self.dimensions == 2 and 'bounds' in self.benchmark_configs.get(bench_name, {}):
+                        bounds_list = self.benchmark_configs[bench_name]['bounds']
+                        # bounds_list is a list of tuples, convert to numpy array [[x_min,x_max],[y_min,y_max]]
+                        b = np.array([bounds_list[0], bounds_list[1]])
+                        contour_path = param_folder / f"{bench_name.lower()}_contour.png"
+                        self.viz.plot_contour_landscape(
+                            benchmark_func=self.benchmark_configs[bench_name]['function'],
+                            bounds=b,
+                            title=f"{bench_name} Contour Landscape",
+                            save_path=contour_path
+                        )
+                except Exception as e:
+                    warnings.warn(f"Failed to create contour landscape for {bench_name}: {e}")
+
+            except Exception:
+                # Skip if data is missing or malformed
+                continue
+
         print("\n✓ All visualizations generated")
     
     def export_to_csv(self, detailed: bool = True):

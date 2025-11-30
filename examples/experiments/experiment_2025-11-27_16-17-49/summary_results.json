@@ -1,0 +1,29 @@
+{
+  "Sphere": {
+    "mean_fitness": 2997.354427677211,
+    "std_fitness": 740.6937983602348,
+    "min_fitness": 1989.7520741728451,
+    "max_fitness": 4224.791881926999,
+    "median_fitness": 2938.503652511775,
+    "mean_time": 0.009651565551757812,
+    "total_time": 0.04825782775878906
+  },
+  "Rastrigin": {
+    "mean_fitness": 283.75920896842206,
+    "std_fitness": 7.5263223259890895,
+    "min_fitness": 274.9868731717887,
+    "max_fitness": 297.58279155476737,
+    "median_fitness": 282.91409968411585,
+    "mean_time": 0.012469911575317382,
+    "total_time": 0.062349557876586914
+  },
+  "Rosenbrock": {
+    "mean_fitness": 3146.598912414534,
+    "std_fitness": 1148.9779049491833,
+    "min_fitness": 2177.569594620482,
+    "max_fitness": 5267.454084208875,
+    "median_fitness": 2727.54513711187,
+    "mean_time": 0.015135097503662109,
+    "total_time": 0.07567548751831055
+  }
+}

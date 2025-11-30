@@ -1,0 +1,17 @@
+{
+  "experiment_name": "experiment_2025-11-27_16-17-49",
+  "timestamp": "2025-11-27T16:17:49.845998",
+  "benchmarks": [
+    "Sphere",
+    "Rastrigin",
+    "Rosenbrock"
+  ],
+  "dimensions": 10,
+  "n_runs": 5,
+  "population_size": 30,
+  "max_iterations": 50,
+  "F": 0.8,
+  "CR": 0.9,
+  "seed": 8144,
+  "mutation": null
+}
