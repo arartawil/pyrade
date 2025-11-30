@@ -2,7 +2,7 @@
 Operators module containing mutation, crossover, and selection strategies.
 """
 
-from pyrade.operators.mutation import (
+from .mutation import (
     MutationStrategy,
     DErand1,
     DEbest1,
@@ -11,6 +11,7 @@ from pyrade.operators.mutation import (
     DEbest2,
     DEcurrentToRand1,
     DERandToBest1,
+    DErand1EitherOr,
 )
 from pyrade.operators.crossover import (
     CrossoverStrategy,

@@ -634,6 +634,119 @@ class DERandToBest1bin(ClassicDE):
         )
 
 
+class DErand1exp(ClassicDE):
+    """
+    DE/rand/1/exp: Classic DE with exponential crossover.
+    
+    Uses DE/rand/1 mutation strategy with exponential crossover instead
+    of binomial. Exponential crossover tends to preserve building blocks
+    better by creating contiguous segments of mutant parameters.
+    
+    Mutation: v_i = x_r1 + F * (x_r2 - x_r3)
+    Crossover: Exponential (contiguous parameter exchange)
+    Selection: Greedy (elitist)
+    
+    Reference:
+        Storn, R., & Price, K. (1997). Differential evolution–a simple
+        and efficient heuristic for global optimization over continuous
+        spaces. Journal of global optimization, 11(4), 341-359.
+    
+    Parameters
+    ----------
+    objective_func : callable
+        Function to minimize
+    bounds : array-like
+        Search space bounds
+    pop_size : int, default=50
+        Population size
+    max_iter : int, default=1000
+        Maximum iterations
+    F : float, default=0.8
+        Mutation factor
+    CR : float, default=0.9
+        Crossover rate (probability of continuing exchange)
+    seed : int, optional
+        Random seed
+    verbose : bool, default=False
+        Print progress
+    """
+    
+    def __init__(self, objective_func, bounds, pop_size=50, max_iter=1000,
+                 F=0.8, CR=0.9, seed=None, verbose=False, callback=None):
+        super().__init__(
+            objective_func=objective_func,
+            bounds=bounds,
+            mutation=DErand1(F=F),
+            crossover=ExponentialCrossover(CR=CR),
+            selection=GreedySelection(),
+            pop_size=pop_size,
+            max_iter=max_iter,
+            F=F,
+            CR=CR,
+            seed=seed,
+            verbose=verbose,
+            callback=callback
+        )
+
+
+class DErand1EitherOrBin(ClassicDE):
+    """
+    DE/rand/1/either-or: Uses probabilistic choice of F in mutation.
+    
+    Uses DE/rand/1 mutation with either-or F selection (F or 0.5*F)
+    combined with binomial crossover. This adds stochastic variation
+    in the mutation step size which can improve exploration.
+    
+    Mutation: v_i = x_r1 + F_i * (x_r2 - x_r3)
+              where F_i = F with probability p_F, else 0.5*F
+    Crossover: Binomial
+    Selection: Greedy (elitist)
+    
+    Reference:
+        Price, K. V., Storn, R. M., & Lampinen, J. A. (2006).
+        Differential Evolution: A Practical Approach to Global Optimization.
+    
+    Parameters
+    ----------
+    objective_func : callable
+        Function to minimize
+    bounds : array-like
+        Search space bounds
+    pop_size : int, default=50
+        Population size
+    max_iter : int, default=1000
+        Maximum iterations
+    F : float, default=0.8
+        Mutation factor
+    CR : float, default=0.9
+        Crossover rate
+    p_F : float, default=0.5
+        Probability of using full F (vs 0.5*F)
+    seed : int, optional
+        Random seed
+    verbose : bool, default=False
+        Print progress
+    """
+    
+    def __init__(self, objective_func, bounds, pop_size=50, max_iter=1000,
+                 F=0.8, CR=0.9, p_F=0.5, seed=None, verbose=False, callback=None):
+        from pyrade.operators import DErand1EitherOr
+        super().__init__(
+            objective_func=objective_func,
+            bounds=bounds,
+            mutation=DErand1EitherOr(F=F, p_F=p_F),
+            crossover=BinomialCrossover(CR=CR),
+            selection=GreedySelection(),
+            pop_size=pop_size,
+            max_iter=max_iter,
+            F=F,
+            CR=CR,
+            seed=seed,
+            verbose=verbose,
+            callback=callback
+        )
+
+
 __all__ = [
     "ClassicDE",
     "DErand1bin",
@@ -643,4 +756,6 @@ __all__ = [
     "DEbest2bin",
     "DEcurrentToRand1bin",
     "DERandToBest1bin",
+    "DErand1exp",
+    "DErand1EitherOrBin",
 ]

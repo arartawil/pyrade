@@ -441,3 +441,68 @@ class DERandToBest1(MutationStrategy):
             self.F * (population[r2] - population[r3])
         )
         return mutants
+
+
+class DErand1EitherOr(MutationStrategy):
+    """
+    DE/rand/1/either-or: v = x_r1 + F_i * (x_r2 - x_r3)
+    
+    Uses probabilistic choice of scaling factor F_i which is either
+    F or 0.5*F based on probability p_F (typically 0.5).
+    
+    Reference:
+        Price, K. V., Storn, R. M., & Lampinen, J. A. (2006).
+        Differential Evolution: A Practical Approach to Global Optimization.
+        Springer Science & Business Media.
+    
+    Parameters
+    ----------
+    F : float, default=0.8
+        Mutation factor (differential weight)
+    p_F : float, default=0.5
+        Probability of using full F (vs 0.5*F)
+    
+    Notes
+    -----
+    This strategy adds randomness in the scaling factor which can
+    help maintain diversity. Each difference vector independently
+    chooses between F and 0.5*F.
+    """
+    
+    def __init__(self, F=0.8, p_F=0.5):
+        if not 0 <= F <= 2:
+            raise ValueError("F must be in [0, 2]")
+        if not 0 <= p_F <= 1:
+            raise ValueError("p_F must be in [0, 1]")
+        self.F = F
+        self.p_F = p_F
+    
+    def apply(self, population, fitness, best_idx, target_indices):
+        """Apply DE/rand/1/either-or mutation (fully vectorized)."""
+        pop_size = len(population)
+        
+        # Vectorized: select random indices for entire population
+        r1 = np.random.randint(0, pop_size, pop_size)
+        r2 = np.random.randint(0, pop_size, pop_size)
+        r3 = np.random.randint(0, pop_size, pop_size)
+        
+        # Ensure all indices are distinct
+        mask = (r1 == target_indices) | (r2 == target_indices) | (r3 == target_indices)
+        mask |= (r1 == r2) | (r1 == r3) | (r2 == r3)
+        
+        max_attempts = 100
+        attempt = 0
+        while np.any(mask) and attempt < max_attempts:
+            r1[mask] = np.random.randint(0, pop_size, np.sum(mask))
+            r2[mask] = np.random.randint(0, pop_size, np.sum(mask))
+            r3[mask] = np.random.randint(0, pop_size, np.sum(mask))
+            mask = (r1 == target_indices) | (r2 == target_indices) | (r3 == target_indices)
+            mask |= (r1 == r2) | (r1 == r3) | (r2 == r3)
+            attempt += 1
+        
+        # Probabilistic choice of F: either F or 0.5*F
+        F_i = np.where(np.random.rand(pop_size) < self.p_F, self.F, 0.5 * self.F)
+        
+        # Vectorized mutation with either-or F
+        mutants = population[r1] + F_i[:, np.newaxis] * (population[r2] - population[r3])
+        return mutants

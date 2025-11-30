@@ -20,6 +20,8 @@ from pyrade.algorithms.classic import (
     DEbest2bin,
     DEcurrentToRand1bin,
     DERandToBest1bin,
+    DErand1exp,
+    DErand1EitherOrBin,
 )
 
 __all__ = [
@@ -31,4 +33,6 @@ __all__ = [
     "DEbest2bin",
     "DEcurrentToRand1bin",
     "DERandToBest1bin",
+    "DErand1exp",
+    "DErand1EitherOrBin",
 ]
