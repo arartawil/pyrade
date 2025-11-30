@@ -16,7 +16,8 @@ from pyrade.benchmarks.functions import (
     Easom,
     StyblinskiTang,
 )
-from .cec2017 import CEC2017Function
+# TODO: Fix CEC2017Function - requires core.problem.Problem base class
+# from .cec2017 import CEC2017Function
 
 __all__ = [
     "BenchmarkFunction",
@@ -32,5 +33,3 @@ __all__ = [
     "Easom",
     "StyblinskiTang",
 ]
-
-__all__.append("CEC2017Function")

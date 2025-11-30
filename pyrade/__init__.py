@@ -30,8 +30,11 @@ from pyrade.__version__ import __version__
 
 __author__ = "PyRADE Contributors"
 
+# Core components
 from pyrade.core.algorithm import DifferentialEvolution
 from pyrade.core.population import Population
+
+# Visualization and experiments
 from pyrade.visualization import (
     OptimizationVisualizer,
     calculate_hypervolume_2d,
@@ -40,12 +43,31 @@ from pyrade.visualization import (
 )
 from pyrade.experiments import ExperimentManager
 
+# Algorithm variants - organized by category
+from pyrade.algorithms.classic import (
+    ClassicDE,
+    DErand1bin,
+    DEbest1bin,
+    DEcurrentToBest1bin,
+    DErand2bin,
+)
+
 __all__ = [
+    # Legacy/core (for backward compatibility)
     "DifferentialEvolution",
     "Population",
+    
+    # Visualization
     "OptimizationVisualizer",
     "ExperimentManager",
     "calculate_hypervolume_2d",
     "calculate_igd",
     "is_pareto_efficient",
+    
+    # Classic DE variants
+    "ClassicDE",
+    "DErand1bin",
+    "DEbest1bin",
+    "DEcurrentToBest1bin",
+    "DErand2bin",
 ]
