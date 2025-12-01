@@ -70,3 +70,12 @@ results/
 data/
 *.npy
 *.npz
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Experiment outputs
+examples/experiments/experiment_*/
+examples/experiments/full_benchmark_suite/
