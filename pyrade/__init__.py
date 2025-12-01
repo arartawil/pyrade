@@ -58,7 +58,7 @@ from pyrade.algorithms.classic import (
 )
 
 # High-level experiment runners
-from pyrade.runner import run_single, run_multiple, compare_algorithms
+from pyrade.runner import run_experiment, compare_algorithms
 
 __all__ = [
     # Legacy/core (for backward compatibility)
