@@ -27,6 +27,9 @@ from pyrade.benchmarks import (
 from pyrade.visualization import OptimizationVisualizer
 from pyrade.experiments import ExperimentManager
 import matplotlib.pyplot as plt
+from datetime import datetime
+import os
+import csv
 
 
 # ============================================================================
@@ -77,12 +80,20 @@ RANDOM_SEED = 42
 NUM_RUNS = 10  # Number of independent runs
 VERBOSE = True
 SAVE_RESULTS = True
-OUTPUT_DIR = "results"
+BASE_OUTPUT_DIR = "experimental"  # Base directory for all experiments
 
 # Visualization Options
 PLOT_CONVERGENCE = True
 PLOT_POPULATION = False  # Only works for 2D problems
 SAVE_PLOTS = True
+
+# Create experiment folder with timestamp
+def get_experiment_folder():
+    """Create and return experiment folder with timestamp."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    exp_folder = os.path.join(BASE_OUTPUT_DIR, timestamp)
+    os.makedirs(exp_folder, exist_ok=True)
+    return exp_folder, timestamp
 
 
 # ============================================================================
@@ -92,20 +103,25 @@ SAVE_PLOTS = True
 def run_single_experiment():
     """Run a single optimization with the configured algorithm and function."""
     
+    # Create experiment folder
+    OUTPUT_DIR, timestamp = get_experiment_folder()
+    
     print("=" * 80)
     print("PyRADE - Single Experiment")
     print("=" * 80)
-    print(f"Algorithm:  {ALGORITHM.__name__}")
+    print(f"Experiment:  {timestamp}")
+    print(f"Output Dir:  {OUTPUT_DIR}")
+    print(f"Algorithm:   {ALGORITHM.__name__}")
     
     # Get function name (handle different types)
     func_name = getattr(BENCHMARK_FUNC, 'name', None) or \
                 getattr(BENCHMARK_FUNC, '__name__', None) or \
                 str(BENCHMARK_FUNC.__class__.__name__)
-    print(f"Function:   {func_name}")
-    print(f"Dimensions: {DIMENSIONS}")
-    print(f"Bounds:     {BOUNDS}")
-    print(f"Population: {POPULATION_SIZE}")
-    print(f"Iterations: {MAX_ITERATIONS}")
+    print(f"Function:    {func_name}")
+    print(f"Dimensions:  {DIMENSIONS}")
+    print(f"Bounds:      {BOUNDS}")
+    print(f"Population:  {POPULATION_SIZE}")
+    print(f"Iterations:  {MAX_ITERATIONS}")
     print("=" * 80)
     
     # Setup bounds
@@ -143,6 +159,38 @@ def run_single_experiment():
     print(f"Execution Time:   {result['time']:.3f}s")
     print("=" * 80)
     
+    # Save results to CSV
+    if SAVE_RESULTS:
+        csv_filename = f"{OUTPUT_DIR}/single_run_results.csv"
+        with open(csv_filename, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['Metric', 'Value'])
+            writer.writerow(['Algorithm', ALGORITHM.__name__])
+            writer.writerow(['Function', func_name])
+            writer.writerow(['Dimensions', DIMENSIONS])
+            writer.writerow(['Population Size', POPULATION_SIZE])
+            writer.writerow(['Max Iterations', MAX_ITERATIONS])
+            writer.writerow(['Mutation F', MUTATION_F])
+            writer.writerow(['Crossover CR', CROSSOVER_CR])
+            writer.writerow(['Best Fitness', result['best_fitness']])
+            writer.writerow(['Execution Time (s)', result['time']])
+            writer.writerow([''])
+            writer.writerow(['Best Solution'])
+            for i, val in enumerate(result['best_solution']):
+                writer.writerow([f'x[{i}]', val])
+        print(f"\nResults saved to: {csv_filename}")
+        
+        # Save convergence history
+        if 'history' in result and isinstance(result['history'], dict):
+            history_filename = f"{OUTPUT_DIR}/convergence_history.csv"
+            with open(history_filename, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(['Iteration', 'Best Fitness', 'Time'])
+                for i, (fit, t) in enumerate(zip(result['history']['fitness'], 
+                                                   result['history']['time'])):
+                    writer.writerow([i, fit, t])
+            print(f"Convergence history saved to: {history_filename}")
+    
     # Visualizations
     if PLOT_CONVERGENCE and 'history' in result:
         visualizer = OptimizationVisualizer()
@@ -150,11 +198,9 @@ def run_single_experiment():
         plt.title(f"{ALGORITHM.__name__} on {func_name}")
         
         if SAVE_PLOTS:
-            import os
-            os.makedirs(OUTPUT_DIR, exist_ok=True)
-            filename = f"{OUTPUT_DIR}/{ALGORITHM.__name__}_{func_name}_convergence.png"
+            filename = f"{OUTPUT_DIR}/convergence.png"
             plt.savefig(filename, dpi=150, bbox_inches='tight')
-            print(f"\nConvergence plot saved to: {filename}")
+            print(f"Convergence plot saved to: {filename}")
         
         plt.show()
     
@@ -164,6 +210,9 @@ def run_single_experiment():
 def run_multiple_experiments():
     """Run multiple independent experiments with statistical analysis."""
     
+    # Create experiment folder
+    OUTPUT_DIR, timestamp = get_experiment_folder()
+    
     # Get function name
     func_name = getattr(BENCHMARK_FUNC, 'name', None) or \
                 getattr(BENCHMARK_FUNC, '__name__', None) or \
@@ -172,10 +221,12 @@ def run_multiple_experiments():
     print("=" * 80)
     print("PyRADE - Multiple Runs Experiment")
     print("=" * 80)
-    print(f"Algorithm:  {ALGORITHM.__name__}")
-    print(f"Function:   {func_name}")
-    print(f"Dimensions: {DIMENSIONS}")
-    print(f"Runs:       {NUM_RUNS}")
+    print(f"Experiment:  {timestamp}")
+    print(f"Output Dir:  {OUTPUT_DIR}")
+    print(f"Algorithm:   {ALGORITHM.__name__}")
+    print(f"Function:    {func_name}")
+    print(f"Dimensions:  {DIMENSIONS}")
+    print(f"Runs:        {NUM_RUNS}")
     print("=" * 80)
     
     # Setup bounds
@@ -225,6 +276,34 @@ def run_multiple_experiments():
     print(f"Std Dev:   {np.std(best_fitness):.6e}")
     print("=" * 80)
     
+    # Save statistical results to CSV
+    if SAVE_RESULTS:
+        csv_filename = f"{OUTPUT_DIR}/multiple_runs_statistics.csv"
+        with open(csv_filename, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['Metric', 'Value'])
+            writer.writerow(['Algorithm', ALGORITHM.__name__])
+            writer.writerow(['Function', func_name])
+            writer.writerow(['Dimensions', DIMENSIONS])
+            writer.writerow(['Number of Runs', NUM_RUNS])
+            writer.writerow([''])
+            writer.writerow(['Statistical Results', ''])
+            writer.writerow(['Best', np.min(best_fitness)])
+            writer.writerow(['Worst', np.max(best_fitness)])
+            writer.writerow(['Mean', np.mean(best_fitness)])
+            writer.writerow(['Median', np.median(best_fitness)])
+            writer.writerow(['Std Dev', np.std(best_fitness)])
+        print(f"\nStatistics saved to: {csv_filename}")
+        
+        # Save all run results
+        runs_filename = f"{OUTPUT_DIR}/all_runs_results.csv"
+        with open(runs_filename, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['Run', 'Best Fitness'])
+            for i, fitness in enumerate(all_best_fitness, 1):
+                writer.writerow([i, fitness])
+        print(f"All runs results saved to: {runs_filename}")
+    
     # Plot convergence curves for all runs
     if PLOT_CONVERGENCE and all_histories:
         plt.figure(figsize=(10, 6))
@@ -244,11 +323,9 @@ def run_multiple_experiments():
         plt.grid(True, alpha=0.3)
         
         if SAVE_PLOTS:
-            import os
-            os.makedirs(OUTPUT_DIR, exist_ok=True)
-            filename = f"{OUTPUT_DIR}/{ALGORITHM.__name__}_{func_name}_multiple_runs.png"
+            filename = f"{OUTPUT_DIR}/convergence_multiple_runs.png"
             plt.savefig(filename, dpi=150, bbox_inches='tight')
-            print(f"\nMultiple runs plot saved to: {filename}")
+            print(f"Multiple runs convergence saved to: {filename}")
         
         plt.show()
     
@@ -260,9 +337,7 @@ def run_multiple_experiments():
     plt.grid(True, alpha=0.3)
     
     if SAVE_PLOTS:
-        import os
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
-        filename = f"{OUTPUT_DIR}/{ALGORITHM.__name__}_{func_name}_boxplot.png"
+        filename = f"{OUTPUT_DIR}/boxplot_distribution.png"
         plt.savefig(filename, dpi=150, bbox_inches='tight')
         print(f"Boxplot saved to: {filename}")
     
@@ -273,6 +348,9 @@ def run_multiple_experiments():
 
 def run_algorithm_comparison():
     """Compare multiple algorithms on the selected benchmark function."""
+    
+    # Create experiment folder
+    OUTPUT_DIR, timestamp = get_experiment_folder()
     
     # Get function name
     func_name = getattr(BENCHMARK_FUNC, 'name', None) or \
@@ -290,10 +368,12 @@ def run_algorithm_comparison():
     print("=" * 80)
     print("PyRADE - Algorithm Comparison")
     print("=" * 80)
-    print(f"Function:   {func_name}")
-    print(f"Dimensions: {DIMENSIONS}")
-    print(f"Algorithms: {len(algorithms)}")
-    print(f"Runs/algo:  {NUM_RUNS}")
+    print(f"Experiment:  {timestamp}")
+    print(f"Output Dir:  {OUTPUT_DIR}")
+    print(f"Function:    {func_name}")
+    print(f"Dimensions:  {DIMENSIONS}")
+    print(f"Algorithms:  {len(algorithms)}")
+    print(f"Runs/algo:   {NUM_RUNS}")
     print("=" * 80)
     
     # Setup bounds
@@ -305,11 +385,13 @@ def run_algorithm_comparison():
         bounds = BOUNDS
     
     results = {}
+    histories = {}
     
     # Run each algorithm
     for algo in algorithms:
         print(f"\nTesting {algo.__name__}...")
         algo_results = []
+        algo_histories = []
         
         for run in range(NUM_RUNS):
             optimizer = algo(
@@ -325,8 +407,13 @@ def run_algorithm_comparison():
             
             result = optimizer.optimize()
             algo_results.append(result['best_fitness'])
+            if 'history' in result and isinstance(result['history'], dict):
+                # Extract fitness history
+                algo_histories.append(result['history']['fitness'])
         
         results[algo.__name__] = np.array(algo_results)
+        if algo_histories:
+            histories[algo.__name__] = np.array(algo_histories)
         print(f"  Mean: {np.mean(algo_results):.6e}, Best: {np.min(algo_results):.6e}")
     
     # Statistical summary
@@ -341,12 +428,77 @@ def run_algorithm_comparison():
     
     print("=" * 80)
     
+    # Save comparison results to CSV
+    if SAVE_RESULTS:
+        csv_filename = f"{OUTPUT_DIR}/algorithm_comparison_summary.csv"
+        with open(csv_filename, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['Experiment Info', ''])
+            writer.writerow(['Function', func_name])
+            writer.writerow(['Dimensions', DIMENSIONS])
+            writer.writerow(['Runs per Algorithm', NUM_RUNS])
+            writer.writerow(['Population Size', POPULATION_SIZE])
+            writer.writerow(['Max Iterations', MAX_ITERATIONS])
+            writer.writerow([''])
+            writer.writerow(['Algorithm', 'Best', 'Mean', 'Std Dev', 'Worst'])
+            for name, fitness in results.items():
+                writer.writerow([name, np.min(fitness), np.mean(fitness), 
+                               np.std(fitness), np.max(fitness)])
+        print(f"\nComparison summary saved to: {csv_filename}")
+        
+        # Save detailed results for each algorithm
+        detailed_filename = f"{OUTPUT_DIR}/algorithm_comparison_detailed.csv"
+        with open(detailed_filename, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            # Header
+            header = ['Run']
+            for name in results.keys():
+                header.append(name)
+            writer.writerow(header)
+            # Data
+            for run in range(NUM_RUNS):
+                row = [run + 1]
+                for fitness_array in results.values():
+                    row.append(fitness_array[run])
+                writer.writerow(row)
+        print(f"Detailed results saved to: {detailed_filename}")
+    
     # Visualization
+    # Plot 1: Convergence curves comparison (if available)
+    if PLOT_CONVERGENCE and histories:
+        plt.figure(figsize=(12, 6))
+        colors = plt.cm.tab10(np.linspace(0, 1, len(histories)))
+        
+        for (name, hist), color in zip(histories.items(), colors):
+            mean_history = np.mean(hist, axis=0)
+            std_history = np.std(hist, axis=0)
+            iterations = np.arange(len(mean_history))
+            
+            plt.semilogy(iterations, mean_history, label=name, color=color, linewidth=2)
+            plt.fill_between(iterations, 
+                           mean_history - std_history, 
+                           mean_history + std_history, 
+                           alpha=0.2, color=color)
+        
+        plt.xlabel('Iteration')
+        plt.ylabel('Best Fitness (log scale)')
+        plt.title(f'Convergence Comparison - {func_name}')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        
+        if SAVE_PLOTS:
+            filename = f"{OUTPUT_DIR}/convergence_comparison.png"
+            plt.savefig(filename, dpi=150, bbox_inches='tight')
+            print(f"Convergence comparison saved to: {filename}")
+        
+        plt.show()
+    
+    # Plot 2: Statistical comparison
     plt.figure(figsize=(12, 6))
     
     # Boxplot comparison
     plt.subplot(1, 2, 1)
-    plt.boxplot(results.values(), labels=results.keys())
+    plt.boxplot(results.values(), tick_labels=results.keys())
     plt.ylabel('Best Fitness')
     plt.title('Algorithm Comparison - Distribution')
     plt.xticks(rotation=45, ha='right')
@@ -366,11 +518,9 @@ def run_algorithm_comparison():
     plt.tight_layout()
     
     if SAVE_PLOTS:
-        import os
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
-        filename = f"{OUTPUT_DIR}/algorithm_comparison_{func_name}.png"
+        filename = f"{OUTPUT_DIR}/statistical_comparison.png"
         plt.savefig(filename, dpi=150, bbox_inches='tight')
-        print(f"\nComparison plot saved to: {filename}")
+        print(f"Statistical comparison saved to: {filename}")
     
     plt.show()
     
