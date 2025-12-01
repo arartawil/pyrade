@@ -448,3 +448,163 @@ class StyblinskiTang(BenchmarkFunction):
     def __call__(self, x):
         """Evaluate Styblinski-Tang function."""
         return np.sum(x**4 - 16*x**2 + 5*x) / 2
+
+
+# ============================================================================
+# Simple Function Wrappers (for direct usage without classes)
+# ============================================================================
+
+def sphere(x):
+    """Sphere function: f(x) = sum(x^2). Global minimum: 0 at origin."""
+    return np.sum(x**2)
+
+
+def rastrigin(x):
+    """Rastrigin function: highly multimodal. Global minimum: 0 at origin."""
+    d = len(x)
+    return 10*d + np.sum(x**2 - 10*np.cos(2*np.pi*x))
+
+
+def rosenbrock(x):
+    """Rosenbrock function: valley-shaped. Global minimum: 0 at [1,1,...,1]."""
+    return np.sum(100*(x[1:] - x[:-1]**2)**2 + (1 - x[:-1])**2)
+
+
+def ackley(x):
+    """Ackley function: many local minima. Global minimum: 0 at origin."""
+    d = len(x)
+    sum1 = np.sum(x**2)
+    sum2 = np.sum(np.cos(2*np.pi*x))
+    return -20*np.exp(-0.2*np.sqrt(sum1/d)) - np.exp(sum2/d) + 20 + np.e
+
+
+def griewank(x):
+    """Griewank function: multimodal. Global minimum: 0 at origin."""
+    sum_part = np.sum(x**2) / 4000
+    prod_part = np.prod(np.cos(x / np.sqrt(np.arange(1, len(x)+1))))
+    return sum_part - prod_part + 1
+
+
+def schwefel(x):
+    """Schwefel function: deceptive. Global minimum: 0 at x=420.9687."""
+    d = len(x)
+    return 418.9829*d - np.sum(x * np.sin(np.sqrt(np.abs(x))))
+
+
+def levy(x):
+    """Levy function: multimodal. Global minimum: 0 at [1,1,...,1]."""
+    d = len(x)
+    w = 1 + (x - 1) / 4
+    term1 = np.sin(np.pi*w[0])**2
+    term2 = np.sum((w[:-1]-1)**2 * (1 + 10*np.sin(np.pi*w[:-1]+1)**2))
+    term3 = (w[-1]-1)**2 * (1 + np.sin(2*np.pi*w[-1])**2)
+    return term1 + term2 + term3
+
+
+def michalewicz(x):
+    """Michalewicz function: steep valleys. Global minimum depends on dimension."""
+    m = 10
+    d = len(x)
+    i = np.arange(1, d+1)
+    return -np.sum(np.sin(x) * np.sin(i*x**2/np.pi)**(2*m))
+
+
+def zakharov(x):
+    """Zakharov function: unimodal. Global minimum: 0 at origin."""
+    d = len(x)
+    i = np.arange(1, d+1)
+    sum1 = np.sum(x**2)
+    sum2 = np.sum(0.5*i*x)
+    return sum1 + sum2**2 + sum2**4
+
+
+def easom(x):
+    """Easom function: sharp peak, flat elsewhere. Global minimum: -1 at [pi,pi]."""
+    return -np.cos(x[0])*np.cos(x[1])*np.exp(-((x[0]-np.pi)**2 + (x[1]-np.pi)**2))
+
+
+def styblinskitang(x):
+    """Styblinski-Tang function. Global minimum: -39.16599*d at [-2.903534, ...]."""
+    return np.sum(x**4 - 16*x**2 + 5*x) / 2
+
+
+# ============================================================================
+# Benchmark Registry (for dynamic access by name)
+# ============================================================================
+
+BENCHMARK_REGISTRY = {
+    # Class-based (with bounds and metadata)
+    'Sphere': Sphere,
+    'Rastrigin': Rastrigin,
+    'Rosenbrock': Rosenbrock,
+    'Ackley': Ackley,
+    'Griewank': Griewank,
+    'Schwefel': Schwefel,
+    'Levy': Levy,
+    'Michalewicz': Michalewicz,
+    'Zakharov': Zakharov,
+    'Easom': Easom,
+    'StyblinskiTang': StyblinskiTang,
+    
+    # Function-based (simple callables)
+    'sphere': sphere,
+    'rastrigin': rastrigin,
+    'rosenbrock': rosenbrock,
+    'ackley': ackley,
+    'griewank': griewank,
+    'schwefel': schwefel,
+    'levy': levy,
+    'michalewicz': michalewicz,
+    'zakharov': zakharov,
+    'easom': easom,
+    'styblinskitang': styblinskitang,
+}
+
+
+def get_benchmark(name, dim=30):
+    """
+    Get a benchmark function by name (case-insensitive).
+    
+    Parameters
+    ----------
+    name : str
+        Name of benchmark function (e.g., 'sphere', 'Rastrigin')
+    dim : int, default=30
+        Dimension for class-based benchmarks
+        
+    Returns
+    -------
+    callable
+        Benchmark function (either class instance or simple function)
+        
+    Examples
+    --------
+    >>> func = get_benchmark('sphere')
+    >>> func = get_benchmark('Rastrigin', dim=20)
+    """
+    # Try exact match first
+    if name in BENCHMARK_REGISTRY:
+        item = BENCHMARK_REGISTRY[name]
+        if isinstance(item, type):  # It's a class
+            return item(dim=dim)
+        return item  # It's a function
+    
+    # Try case-insensitive match
+    name_lower = name.lower()
+    for key, item in BENCHMARK_REGISTRY.items():
+        if key.lower() == name_lower:
+            if isinstance(item, type):
+                return item(dim=dim)
+            return item
+    
+    raise ValueError(f"Unknown benchmark: {name}. Available: {list(BENCHMARK_REGISTRY.keys())}")
+
+
+def list_benchmarks():
+    """List all available benchmark functions."""
+    classes = [k for k, v in BENCHMARK_REGISTRY.items() if isinstance(v, type)]
+    functions = [k for k, v in BENCHMARK_REGISTRY.items() if not isinstance(v, type)]
+    return {
+        'classes': sorted(classes),
+        'functions': sorted(functions)
+    }

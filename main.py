@@ -17,9 +17,12 @@ from pyrade import (
     # Legacy/Custom
     DifferentialEvolution
 )
-from pyrade.benchmarks.functions import (
+from pyrade.benchmarks import (
+    # Simple functions (direct use)
     sphere, rosenbrock, rastrigin, ackley, schwefel,
-    griewank, levy, michalewicz, zakharov, easom, styblinskitang
+    griewank, levy, michalewicz, zakharov, easom, styblinskitang,
+    # Utilities
+    get_benchmark, list_benchmarks
 )
 from pyrade.visualization import OptimizationVisualizer
 from pyrade.experiments import ExperimentManager
@@ -30,23 +33,38 @@ import matplotlib.pyplot as plt
 # EXPERIMENT CONFIGURATION
 # ============================================================================
 
+# To see all available benchmarks:
+# python -c "from pyrade.benchmarks import list_benchmarks; print(list_benchmarks())"
+
 # Select Algorithm (uncomment one or add your own)
 ALGORITHM = DErand1bin
 # ALGORITHM = DEbest1bin
 # ALGORITHM = DEcurrentToBest1bin
 # ALGORITHM = DErand2bin
+# ALGORITHM = DEbest2bin
+# ALGORITHM = DErand1exp
 # ALGORITHM = jDE  # Adaptive algorithm
 
-# Select Benchmark Function (uncomment one)
+# Select Benchmark Function 
+# Method 1: Direct function import (simplest)
 BENCHMARK_FUNC = sphere
 # BENCHMARK_FUNC = rosenbrock
 # BENCHMARK_FUNC = rastrigin
 # BENCHMARK_FUNC = ackley
 # BENCHMARK_FUNC = schwefel
 
+# Method 2: Dynamic by name (more flexible)
+# BENCHMARK_FUNC = get_benchmark('rastrigin')
+# BENCHMARK_FUNC = get_benchmark('ackley')
+
+# Method 3: CEC2017 competition functions (F1-F10 implemented)
+# from pyrade.benchmarks import CEC2017Function
+# BENCHMARK_FUNC = CEC2017Function(func_num=5, dimensions=30)  # F5: Rastrigin
+
 # Problem Configuration
 DIMENSIONS = 30
 BOUNDS = (-100, 100)  # Can also be list of tuples: [(-10,10), (-5,5), ...]
+                      # Or use: BENCHMARK_FUNC.get_bounds_array() for CEC2017
 
 # Algorithm Parameters
 POPULATION_SIZE = 50
@@ -78,7 +96,12 @@ def run_single_experiment():
     print("PyRADE - Single Experiment")
     print("=" * 80)
     print(f"Algorithm:  {ALGORITHM.__name__}")
-    print(f"Function:   {BENCHMARK_FUNC.__name__}")
+    
+    # Get function name (handle different types)
+    func_name = getattr(BENCHMARK_FUNC, 'name', None) or \
+                getattr(BENCHMARK_FUNC, '__name__', None) or \
+                str(BENCHMARK_FUNC.__class__.__name__)
+    print(f"Function:   {func_name}")
     print(f"Dimensions: {DIMENSIONS}")
     print(f"Bounds:     {BOUNDS}")
     print(f"Population: {POPULATION_SIZE}")
@@ -86,7 +109,10 @@ def run_single_experiment():
     print("=" * 80)
     
     # Setup bounds
-    if isinstance(BOUNDS, tuple):
+    if hasattr(BENCHMARK_FUNC, 'get_bounds_array'):
+        # CEC2017 or class-based benchmark
+        bounds = BENCHMARK_FUNC.get_bounds_array()
+    elif isinstance(BOUNDS, tuple):
         bounds = [BOUNDS] * DIMENSIONS
     else:
         bounds = BOUNDS
@@ -113,20 +139,20 @@ def run_single_experiment():
     print(f"Best Fitness:     {result['best_fitness']:.6e}")
     print(f"Best Solution:    {result['best_solution'][:5]}..." if len(result['best_solution']) > 5 
           else f"Best Solution:    {result['best_solution']}")
-    print(f"Iterations:       {result['iterations']}")
-    print(f"Function Evals:   {result['function_evaluations']}")
+    print(f"Iterations:       {result['n_iterations']}")
+    print(f"Execution Time:   {result['time']:.3f}s")
     print("=" * 80)
     
     # Visualizations
     if PLOT_CONVERGENCE and 'history' in result:
         visualizer = OptimizationVisualizer()
-        fig = visualizer.plot_convergence(result['history'])
-        plt.title(f"{ALGORITHM.__name__} on {BENCHMARK_FUNC.__name__}")
+        fig = visualizer.plot_convergence_curve(result['history'])
+        plt.title(f"{ALGORITHM.__name__} on {func_name}")
         
         if SAVE_PLOTS:
             import os
             os.makedirs(OUTPUT_DIR, exist_ok=True)
-            filename = f"{OUTPUT_DIR}/{ALGORITHM.__name__}_{BENCHMARK_FUNC.__name__}_convergence.png"
+            filename = f"{OUTPUT_DIR}/{ALGORITHM.__name__}_{func_name}_convergence.png"
             plt.savefig(filename, dpi=150, bbox_inches='tight')
             print(f"\nConvergence plot saved to: {filename}")
         
@@ -138,17 +164,24 @@ def run_single_experiment():
 def run_multiple_experiments():
     """Run multiple independent experiments with statistical analysis."""
     
+    # Get function name
+    func_name = getattr(BENCHMARK_FUNC, 'name', None) or \
+                getattr(BENCHMARK_FUNC, '__name__', None) or \
+                str(BENCHMARK_FUNC.__class__.__name__)
+    
     print("=" * 80)
     print("PyRADE - Multiple Runs Experiment")
     print("=" * 80)
     print(f"Algorithm:  {ALGORITHM.__name__}")
-    print(f"Function:   {BENCHMARK_FUNC.__name__}")
+    print(f"Function:   {func_name}")
     print(f"Dimensions: {DIMENSIONS}")
     print(f"Runs:       {NUM_RUNS}")
     print("=" * 80)
     
     # Setup bounds
-    if isinstance(BOUNDS, tuple):
+    if hasattr(BENCHMARK_FUNC, 'get_bounds_array'):
+        bounds = BENCHMARK_FUNC.get_bounds_array()
+    elif isinstance(BOUNDS, tuple):
         bounds = [BOUNDS] * DIMENSIONS
     else:
         bounds = BOUNDS
@@ -206,14 +239,14 @@ def run_multiple_experiments():
         
         plt.xlabel('Iteration')
         plt.ylabel('Best Fitness (log scale)')
-        plt.title(f'{ALGORITHM.__name__} on {BENCHMARK_FUNC.__name__} ({NUM_RUNS} runs)')
+        plt.title(f'{ALGORITHM.__name__} on {func_name} ({NUM_RUNS} runs)')
         plt.legend()
         plt.grid(True, alpha=0.3)
         
         if SAVE_PLOTS:
             import os
             os.makedirs(OUTPUT_DIR, exist_ok=True)
-            filename = f"{OUTPUT_DIR}/{ALGORITHM.__name__}_{BENCHMARK_FUNC.__name__}_multiple_runs.png"
+            filename = f"{OUTPUT_DIR}/{ALGORITHM.__name__}_{func_name}_multiple_runs.png"
             plt.savefig(filename, dpi=150, bbox_inches='tight')
             print(f"\nMultiple runs plot saved to: {filename}")
         
@@ -223,13 +256,13 @@ def run_multiple_experiments():
     plt.figure(figsize=(8, 6))
     plt.boxplot(best_fitness, vert=True)
     plt.ylabel('Best Fitness')
-    plt.title(f'Distribution of Final Results\n{ALGORITHM.__name__} on {BENCHMARK_FUNC.__name__}')
+    plt.title(f'Distribution of Final Results\n{ALGORITHM.__name__} on {func_name}')
     plt.grid(True, alpha=0.3)
     
     if SAVE_PLOTS:
         import os
         os.makedirs(OUTPUT_DIR, exist_ok=True)
-        filename = f"{OUTPUT_DIR}/{ALGORITHM.__name__}_{BENCHMARK_FUNC.__name__}_boxplot.png"
+        filename = f"{OUTPUT_DIR}/{ALGORITHM.__name__}_{func_name}_boxplot.png"
         plt.savefig(filename, dpi=150, bbox_inches='tight')
         print(f"Boxplot saved to: {filename}")
     
@@ -240,6 +273,11 @@ def run_multiple_experiments():
 
 def run_algorithm_comparison():
     """Compare multiple algorithms on the selected benchmark function."""
+    
+    # Get function name
+    func_name = getattr(BENCHMARK_FUNC, 'name', None) or \
+                getattr(BENCHMARK_FUNC, '__name__', None) or \
+                str(BENCHMARK_FUNC.__class__.__name__)
     
     # Define algorithms to compare
     algorithms = [
@@ -252,14 +290,16 @@ def run_algorithm_comparison():
     print("=" * 80)
     print("PyRADE - Algorithm Comparison")
     print("=" * 80)
-    print(f"Function:   {BENCHMARK_FUNC.__name__}")
+    print(f"Function:   {func_name}")
     print(f"Dimensions: {DIMENSIONS}")
     print(f"Algorithms: {len(algorithms)}")
     print(f"Runs/algo:  {NUM_RUNS}")
     print("=" * 80)
     
     # Setup bounds
-    if isinstance(BOUNDS, tuple):
+    if hasattr(BENCHMARK_FUNC, 'get_bounds_array'):
+        bounds = BENCHMARK_FUNC.get_bounds_array()
+    elif isinstance(BOUNDS, tuple):
         bounds = [BOUNDS] * DIMENSIONS
     else:
         bounds = BOUNDS
@@ -328,7 +368,7 @@ def run_algorithm_comparison():
     if SAVE_PLOTS:
         import os
         os.makedirs(OUTPUT_DIR, exist_ok=True)
-        filename = f"{OUTPUT_DIR}/algorithm_comparison_{BENCHMARK_FUNC.__name__}.png"
+        filename = f"{OUTPUT_DIR}/algorithm_comparison_{func_name}.png"
         plt.savefig(filename, dpi=150, bbox_inches='tight')
         print(f"\nComparison plot saved to: {filename}")
     
