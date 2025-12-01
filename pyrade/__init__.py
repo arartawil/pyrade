@@ -57,6 +57,9 @@ from pyrade.algorithms.classic import (
     DErand1EitherOrBin,
 )
 
+# High-level experiment runners
+from pyrade.runner import run_single, run_multiple, compare_algorithms
+
 __all__ = [
     # Legacy/core (for backward compatibility)
     "DifferentialEvolution",
@@ -80,4 +83,9 @@ __all__ = [
     "DERandToBest1bin",
     "DErand1exp",
     "DErand1EitherOrBin",
+    
+    # High-level runners
+    "run_single",
+    "run_multiple",
+    "compare_algorithms",
 ]
