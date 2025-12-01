@@ -83,9 +83,66 @@ SAVE_RESULTS = True
 BASE_OUTPUT_DIR = "experimental"  # Base directory for all experiments
 
 # Visualization Options
-PLOT_CONVERGENCE = True
-PLOT_POPULATION = False  # Only works for 2D problems
 SAVE_PLOTS = True
+
+# Visualization Controller - Choose which plots to generate
+VISUALIZATION_CONFIG = {
+    # Basic plots (always useful)
+    'convergence_curve': True,          # Fitness improvement over iterations
+    'fitness_boxplot': True,            # Distribution of final results (multi-run)
+    
+    # Advanced statistical plots
+    'parameter_heatmap': False,         # Heatmap of solution parameters
+    'parallel_coordinates': False,      # Multi-dimensional solution visualization
+    'population_diversity': False,      # Population diversity over time
+    
+    # Landscape visualization (2D problems only)
+    'contour_landscape': False,         # 2D fitness landscape with trajectory
+    
+    # Multi-objective plots (requires multi-objective data)
+    'pareto_front_2d': False,          # 2D Pareto front
+    'pareto_front_3d': False,          # 3D Pareto front
+    'hypervolume_progress': False,     # Hypervolume indicator over time
+    'igd_progress': False,             # IGD metric over time
+}
+
+# Quick presets - uncomment one to use
+# VISUALIZATION_CONFIG = 'all'        # Generate all available plots
+# VISUALIZATION_CONFIG = 'basic'      # Only convergence and boxplot
+# VISUALIZATION_CONFIG = 'research'   # All plots for paper/thesis
+# VISUALIZATION_CONFIG = 'none'       # No plots (data only)
+
+def get_visualization_config():
+    """Parse visualization configuration."""
+    if isinstance(VISUALIZATION_CONFIG, str):
+        presets = {
+            'all': {k: True for k in [
+                'convergence_curve', 'fitness_boxplot', 'parameter_heatmap',
+                'parallel_coordinates', 'population_diversity', 'contour_landscape',
+                'pareto_front_2d', 'pareto_front_3d', 'hypervolume_progress', 'igd_progress'
+            ]},
+            'basic': {
+                'convergence_curve': True, 'fitness_boxplot': True,
+                'parameter_heatmap': False, 'parallel_coordinates': False,
+                'population_diversity': False, 'contour_landscape': False,
+                'pareto_front_2d': False, 'pareto_front_3d': False,
+                'hypervolume_progress': False, 'igd_progress': False
+            },
+            'research': {
+                'convergence_curve': True, 'fitness_boxplot': True,
+                'parameter_heatmap': True, 'parallel_coordinates': True,
+                'population_diversity': True, 'contour_landscape': False,
+                'pareto_front_2d': False, 'pareto_front_3d': False,
+                'hypervolume_progress': False, 'igd_progress': False
+            },
+            'none': {k: False for k in [
+                'convergence_curve', 'fitness_boxplot', 'parameter_heatmap',
+                'parallel_coordinates', 'population_diversity', 'contour_landscape',
+                'pareto_front_2d', 'pareto_front_3d', 'hypervolume_progress', 'igd_progress'
+            ]}
+        }
+        return presets.get(VISUALIZATION_CONFIG.lower(), presets['basic'])
+    return VISUALIZATION_CONFIG
 
 # Create experiment folder with timestamp
 def get_experiment_folder():
@@ -192,17 +249,31 @@ def run_single_experiment():
             print(f"Convergence history saved to: {history_filename}")
     
     # Visualizations
-    if PLOT_CONVERGENCE and 'history' in result:
-        visualizer = OptimizationVisualizer()
+    viz_config = get_visualization_config()
+    visualizer = OptimizationVisualizer()
+    
+    if viz_config.get('convergence_curve') and 'history' in result:
         fig = visualizer.plot_convergence_curve(result['history'])
         plt.title(f"{ALGORITHM.__name__} on {func_name}")
-        
         if SAVE_PLOTS:
             filename = f"{OUTPUT_DIR}/convergence.png"
             plt.savefig(filename, dpi=150, bbox_inches='tight')
             print(f"Convergence plot saved to: {filename}")
-        
         plt.show()
+    
+    if viz_config.get('parameter_heatmap') and 'best_solution' in result:
+        try:
+            fig = visualizer.plot_parameter_heatmap(
+                solutions=[result['best_solution']],
+                title=f"Best Solution Parameters - {func_name}"
+            )
+            if SAVE_PLOTS:
+                filename = f"{OUTPUT_DIR}/parameter_heatmap.png"
+                plt.savefig(filename, dpi=150, bbox_inches='tight')
+                print(f"Parameter heatmap saved to: {filename}")
+            plt.show()
+        except Exception as e:
+            print(f"Could not generate parameter heatmap: {e}")
     
     return result
 
@@ -304,8 +375,12 @@ def run_multiple_experiments():
                 writer.writerow([i, fitness])
         print(f"All runs results saved to: {runs_filename}")
     
+    # Visualizations
+    viz_config = get_visualization_config()
+    visualizer = OptimizationVisualizer()
+    
     # Plot convergence curves for all runs
-    if PLOT_CONVERGENCE and all_histories:
+    if viz_config.get('convergence_curve') and all_histories:
         plt.figure(figsize=(10, 6))
         
         for i, history in enumerate(all_histories):
@@ -330,18 +405,34 @@ def run_multiple_experiments():
         plt.show()
     
     # Boxplot of final results
-    plt.figure(figsize=(8, 6))
-    plt.boxplot(best_fitness, vert=True)
-    plt.ylabel('Best Fitness')
-    plt.title(f'Distribution of Final Results\n{ALGORITHM.__name__} on {func_name}')
-    plt.grid(True, alpha=0.3)
+    if viz_config.get('fitness_boxplot'):
+        plt.figure(figsize=(8, 6))
+        plt.boxplot(best_fitness, vert=True)
+        plt.ylabel('Best Fitness')
+        plt.title(f'Distribution of Final Results\n{ALGORITHM.__name__} on {func_name}')
+        plt.grid(True, alpha=0.3)
+        
+        if SAVE_PLOTS:
+            filename = f"{OUTPUT_DIR}/boxplot_distribution.png"
+            plt.savefig(filename, dpi=150, bbox_inches='tight')
+            print(f"Boxplot saved to: {filename}")
+        
+        plt.show()
     
-    if SAVE_PLOTS:
-        filename = f"{OUTPUT_DIR}/boxplot_distribution.png"
-        plt.savefig(filename, dpi=150, bbox_inches='tight')
-        print(f"Boxplot saved to: {filename}")
-    
-    plt.show()
+    # Population diversity plot
+    if viz_config.get('population_diversity') and all_histories:
+        try:
+            fig = visualizer.plot_population_diversity(
+                diversity_history=[np.std(h) for h in all_histories],
+                title=f'Population Diversity - {func_name}'
+            )
+            if SAVE_PLOTS:
+                filename = f"{OUTPUT_DIR}/population_diversity.png"
+                plt.savefig(filename, dpi=150, bbox_inches='tight')
+                print(f"Population diversity saved to: {filename}")
+            plt.show()
+        except Exception as e:
+            print(f"Could not generate diversity plot: {e}")
     
     return best_fitness, all_histories
 
@@ -463,9 +554,12 @@ def run_algorithm_comparison():
                 writer.writerow(row)
         print(f"Detailed results saved to: {detailed_filename}")
     
-    # Visualization
+    # Visualizations
+    viz_config = get_visualization_config()
+    visualizer = OptimizationVisualizer()
+    
     # Plot 1: Convergence curves comparison (if available)
-    if PLOT_CONVERGENCE and histories:
+    if viz_config.get('convergence_curve') and histories:
         plt.figure(figsize=(12, 6))
         colors = plt.cm.tab10(np.linspace(0, 1, len(histories)))
         
@@ -493,36 +587,62 @@ def run_algorithm_comparison():
         
         plt.show()
     
-    # Plot 2: Statistical comparison
-    plt.figure(figsize=(12, 6))
+    # Plot 2: Statistical comparison (boxplot + bar chart)
+    if viz_config.get('fitness_boxplot'):
+        plt.figure(figsize=(12, 6))
+        
+        # Boxplot comparison
+        plt.subplot(1, 2, 1)
+        plt.boxplot(results.values(), tick_labels=results.keys())
+        plt.ylabel('Best Fitness')
+        plt.title('Algorithm Comparison - Distribution')
+        plt.xticks(rotation=45, ha='right')
+        plt.grid(True, alpha=0.3)
+        
+        # Bar plot of means
+        plt.subplot(1, 2, 2)
+        means = [np.mean(v) for v in results.values()]
+        stds = [np.std(v) for v in results.values()]
+        x_pos = np.arange(len(results))
+        plt.bar(x_pos, means, yerr=stds, capsize=5)
+        plt.xticks(x_pos, results.keys(), rotation=45, ha='right')
+        plt.ylabel('Mean Best Fitness')
+        plt.title('Algorithm Comparison - Mean ± Std')
+        plt.grid(True, alpha=0.3, axis='y')
+        
+        plt.tight_layout()
+        
+        if SAVE_PLOTS:
+            filename = f"{OUTPUT_DIR}/statistical_comparison.png"
+            plt.savefig(filename, dpi=150, bbox_inches='tight')
+            print(f"Statistical comparison saved to: {filename}")
+        
+        plt.show()
     
-    # Boxplot comparison
-    plt.subplot(1, 2, 1)
-    plt.boxplot(results.values(), tick_labels=results.keys())
-    plt.ylabel('Best Fitness')
-    plt.title('Algorithm Comparison - Distribution')
-    plt.xticks(rotation=45, ha='right')
-    plt.grid(True, alpha=0.3)
-    
-    # Bar plot of means
-    plt.subplot(1, 2, 2)
-    means = [np.mean(v) for v in results.values()]
-    stds = [np.std(v) for v in results.values()]
-    x_pos = np.arange(len(results))
-    plt.bar(x_pos, means, yerr=stds, capsize=5)
-    plt.xticks(x_pos, results.keys(), rotation=45, ha='right')
-    plt.ylabel('Mean Best Fitness')
-    plt.title('Algorithm Comparison - Mean ± Std')
-    plt.grid(True, alpha=0.3, axis='y')
-    
-    plt.tight_layout()
-    
-    if SAVE_PLOTS:
-        filename = f"{OUTPUT_DIR}/statistical_comparison.png"
-        plt.savefig(filename, dpi=150, bbox_inches='tight')
-        print(f"Statistical comparison saved to: {filename}")
-    
-    plt.show()
+    # Plot 3: Parallel coordinates for algorithm comparison
+    if viz_config.get('parallel_coordinates') and len(results) > 1:
+        try:
+            # Prepare data for parallel coordinates
+            all_solutions = []
+            all_labels = []
+            for name, fitness_vals in results.items():
+                all_solutions.extend([[f] for f in fitness_vals])
+                all_labels.extend([name] * len(fitness_vals))
+            
+            if all_solutions:
+                fig = visualizer.plot_parallel_coordinates(
+                    solutions=np.array(all_solutions),
+                    fitness=np.array([s[0] for s in all_solutions]),
+                    labels=all_labels,
+                    title=f'Algorithm Comparison - Parallel Coordinates'
+                )
+                if SAVE_PLOTS:
+                    filename = f"{OUTPUT_DIR}/parallel_coordinates.png"
+                    plt.savefig(filename, dpi=150, bbox_inches='tight')
+                    print(f"Parallel coordinates saved to: {filename}")
+                plt.show()
+        except Exception as e:
+            print(f"Could not generate parallel coordinates: {e}")
     
     return results
 
