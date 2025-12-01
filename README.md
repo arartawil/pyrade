@@ -48,9 +48,15 @@ PyRADE's vectorized implementation significantly outperforms traditional loop-ba
 
 ## 📦 Installation
 
+### From PyPI (Recommended)
+```bash
+pip install pyrade
+```
+
+### From Source
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/pyrade.git
+git clone https://github.com/arartawil/pyrade.git
 cd pyrade
 
 # Install dependencies
@@ -60,12 +66,26 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-Or install directly:
+## 🎯 Quick Start
+
+### Unified Experiment Runner
+
+PyRADE includes `main.py` - a ready-to-use experiment runner:
+
 ```bash
-pip install numpy>=1.20.0
+python main.py
 ```
 
-## 🎯 Quick Start
+**Three experiment modes:**
+1. **Single run** - Quick test of algorithm on function
+2. **Multiple runs** - Statistical analysis with plots
+3. **Algorithm comparison** - Compare multiple DE variants
+
+Edit `main.py` to configure:
+- Algorithm (10 classic variants available)
+- Benchmark function (11 functions included)
+- Dimensions, bounds, population size
+- Visualization and saving options
 
 ### Example 1: Minimizing a Simple Function
 
@@ -73,7 +93,7 @@ Let's start by minimizing the classic **Sphere function**: f(x) = Σx²
 
 ```python
 import numpy as np
-from pyrade import DifferentialEvolution
+from pyrade import DErand1bin  # or DifferentialEvolution for legacy
 
 # Define your objective function to minimize
 def sphere(x):
@@ -81,7 +101,7 @@ def sphere(x):
     return np.sum(x**2)
 
 # Create the optimizer
-optimizer = DifferentialEvolution(
+optimizer = DErand1bin(
     objective_func=sphere,
     bounds=[(-100, 100)] * 10,  # 10-dimensional problem, each dimension in [-100, 100]
     pop_size=50,                 # Population size (recommended: 5-10x dimensions)
@@ -140,22 +160,55 @@ print(f"Success: {error < 1e-3}")
 - `Sphere`, `Rastrigin`, `Rosenbrock`, `Ackley`, `Griewank`
 - `Schwefel`, `Levy`, `Michalewicz`, `Zakharov`
 
-### Example 3: Using Custom Strategies
+### Example 3: Using Algorithm Variants
 
-Fine-tune the algorithm by selecting specific strategies:
+Choose from 10 pre-configured classic DE variants:
+
+```python
+from pyrade import DEbest1bin, DErand2bin, DEcurrentToBest1bin
+from pyrade.benchmarks.functions import ackley
+
+# Fast convergence with DE/best/1
+optimizer1 = DEbest1bin(
+    objective_func=ackley,
+    bounds=[(-32.768, 32.768)] * 30,
+    pop_size=100,
+    max_iter=500,
+    F=0.8,
+    CR=0.9,
+    verbose=True
+)
+
+result1 = optimizer1.optimize()
+print(f"DEbest1bin fitness: {result1['best_fitness']:.6e}")
+
+# More exploration with DE/rand/2
+optimizer2 = DErand2bin(
+    objective_func=ackley,
+    bounds=[(-32.768, 32.768)] * 30,
+    pop_size=100,
+    max_iter=500,
+    verbose=True
+)
+
+result2 = optimizer2.optimize()
+print(f"DErand2bin fitness: {result2['best_fitness']:.6e}")
+```
+
+### Example 4: Using Custom Strategies (Advanced)
+
+Build your own configuration with the base class:
 
 ```python
 from pyrade import DifferentialEvolution
 from pyrade.operators import DEbest1, ExponentialCrossover, GreedySelection
-from pyrade.benchmarks import Ackley
+from pyrade.benchmarks.functions import ackley
 
-func = Ackley(dim=30)
-
-# Use exploitative mutation for faster convergence
+# Custom configuration for specific problem
 optimizer = DifferentialEvolution(
-    objective_func=func,
-    bounds=func.get_bounds_array(),
-    mutation=DEbest1(F=0.8),                    # Exploitative mutation strategy
+    objective_func=ackley,
+    bounds=[(-32.768, 32.768)] * 30,
+    mutation=DEbest1(F=0.8),                    # Exploitative mutation
     crossover=ExponentialCrossover(CR=0.9),     # Exponential crossover
     selection=GreedySelection(),                 # Greedy selection
     pop_size=100,
@@ -164,13 +217,16 @@ optimizer = DifferentialEvolution(
 )
 
 result = optimizer.optimize()
-print(f"Optimized fitness: {result['best_fitness']:.6e}")
+print(f"Custom config fitness: {result['best_fitness']:.6e}")
 ```
 
-**Strategy Guide:**
-- **Mutation**: `DErand1` (exploration), `DEbest1` (exploitation), `DEcurrentToBest1` (balanced)
-- **Crossover**: `BinomialCrossover` (standard), `ExponentialCrossover` (segment-based)
-- **Selection**: `GreedySelection` (standard), `TournamentSelection` (diversity), `ElitistSelection` (elite preservation)
+**Algorithm Selection Guide:**
+- **DErand1bin**: General-purpose, good balance
+- **DEbest1bin**: Fast convergence on unimodal functions
+- **DEcurrentToBest1bin**: Aggressive exploitation
+- **DErand2bin**: Better exploration for multimodal
+- **DErand1exp**: Better for preserving building blocks
+- **jDE**: Automatic parameter adaptation (no tuning needed!)
 
 ## 🏗️ Architecture
 
@@ -181,24 +237,49 @@ pyrade/
 ├── core/
 │   ├── algorithm.py          # Main DifferentialEvolution class
 │   └── population.py          # Population management
+├── algorithms/               # Pre-configured algorithm variants
+│   ├── classic/              # Classic DE variants (10 algorithms)
+│   ├── adaptive/             # Adaptive DE (jDE, SaDE, JADE, CoDE)
+│   ├── multi_population/     # Multi-population variants
+│   └── hybrid/               # Hybrid algorithms
 ├── operators/
-│   ├── mutation.py            # Mutation strategies (DE/rand/1, DE/best/1, etc.)
-│   ├── crossover.py           # Crossover strategies (Binomial, Exponential)
-│   └── selection.py           # Selection strategies (Greedy, Tournament, etc.)
+│   ├── mutation.py           # Mutation strategies (10 strategies)
+│   ├── crossover.py          # Crossover strategies (Binomial, Exponential)
+│   └── selection.py          # Selection strategies (Greedy, Tournament, etc.)
 ├── utils/
-│   ├── boundary.py            # Boundary handling (Clip, Reflect, Random, etc.)
-│   └── termination.py         # Termination criteria
+│   ├── boundary.py           # Boundary handling (Clip, Reflect, Random, etc.)
+│   └── termination.py        # Termination criteria
 └── benchmarks/
-    └── functions.py           # Standard test functions
+    └── functions.py          # Standard test functions
 ```
 
-## 🎨 Available Strategies
+## 🎨 Available Algorithm Variants (v0.3.0)
 
-### Mutation Strategies
-- **DE/rand/1**: Most common, good exploration
-- **DE/best/1**: Exploitative, fast convergence
-- **DE/current-to-best/1**: Balanced exploration/exploitation
-- **DE/rand/2**: More exploratory with two difference vectors
+### Classic DE Variants (10 algorithms)
+- **DErand1bin**: DE/rand/1/bin - Standard random base with binomial crossover
+- **DErand2bin**: DE/rand/2/bin - Two difference vectors for exploration
+- **DEbest1bin**: DE/best/1/bin - Exploitative, fast convergence
+- **DEbest2bin**: DE/best/2/bin - Best with two difference vectors
+- **DEcurrentToBest1bin**: DE/current-to-best/1/bin - Greedy toward best
+- **DEcurrentToRand1bin**: DE/current-to-rand/1/bin - Diversity maintenance
+- **DERandToBest1bin**: DE/rand-to-best/1/bin - Balanced approach
+- **DErand1exp**: DE/rand/1/exp - Exponential crossover variant
+- **DErand1EitherOrBin**: DE/rand/1/either-or - Probabilistic F selection
+- **ClassicDE**: Flexible base class for custom configurations
+
+### Adaptive DE Variants
+- **jDE**: Self-adaptive F and CR parameters (fully implemented)
+- **SaDE**, **JADE**, **CoDE**: Coming in v0.4.0
+
+### Available Mutation Strategies
+- **DErand1**: Most common, good exploration
+- **DErand2**: More exploratory with two difference vectors
+- **DEbest1**: Exploitative, fast convergence
+- **DEbest2**: Best with two difference vectors
+- **DEcurrentToBest1**: Balanced exploration/exploitation
+- **DEcurrentToRand1**: Diversity maintenance
+- **DERandToBest1**: Combination of random and best
+- **DErand1EitherOr**: Probabilistic F selection
 
 ### Crossover Strategies
 - **Binomial**: Standard independent dimension crossover
