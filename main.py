@@ -92,22 +92,22 @@ VISUALIZATION_CONFIG = {
     'fitness_boxplot': True,            # Distribution of final results (multi-run)
     
     # Advanced statistical plots
-    'parameter_heatmap': False,         # Heatmap of solution parameters
-    'parallel_coordinates': False,      # Multi-dimensional solution visualization
-    'population_diversity': False,      # Population diversity over time
+    'parameter_heatmap': True,         # Heatmap of solution parameters
+    'parallel_coordinates': True,      # Multi-dimensional solution visualization
+    'population_diversity': True,      # Population diversity over time
     
     # Landscape visualization (2D problems only)
-    'contour_landscape': False,         # 2D fitness landscape with trajectory
+    'contour_landscape': True,         # 2D fitness landscape with trajectory
     
     # Multi-objective plots (requires multi-objective data)
-    'pareto_front_2d': False,          # 2D Pareto front
-    'pareto_front_3d': False,          # 3D Pareto front
-    'hypervolume_progress': False,     # Hypervolume indicator over time
-    'igd_progress': False,             # IGD metric over time
+    'pareto_front_2d': True,          # 2D Pareto front
+    'pareto_front_3d': True,          # 3D Pareto front
+    'hypervolume_progress': True,     # Hypervolume indicator over time
+    'igd_progress': True,             # IGD metric over time
 }
 
 # Quick presets - uncomment one to use
-# VISUALIZATION_CONFIG = 'all'        # Generate all available plots
+VISUALIZATION_CONFIG = 'all'        # Generate all available plots
 # VISUALIZATION_CONFIG = 'basic'      # Only convergence and boxplot
 # VISUALIZATION_CONFIG = 'research'   # All plots for paper/thesis
 # VISUALIZATION_CONFIG = 'none'       # No plots (data only)
@@ -252,28 +252,138 @@ def run_single_experiment():
     viz_config = get_visualization_config()
     visualizer = OptimizationVisualizer()
     
-    if viz_config.get('convergence_curve') and 'history' in result:
-        fig = visualizer.plot_convergence_curve(result['history'])
-        plt.title(f"{ALGORITHM.__name__} on {func_name}")
-        if SAVE_PLOTS:
-            filename = f"{OUTPUT_DIR}/convergence.png"
-            plt.savefig(filename, dpi=150, bbox_inches='tight')
-            print(f"Convergence plot saved to: {filename}")
-        plt.show()
+    print("\n" + "=" * 80)
+    print("GENERATING VISUALIZATIONS")
+    print("=" * 80)
     
-    if viz_config.get('parameter_heatmap') and 'best_solution' in result:
+    plots_generated = 0
+    
+    # 1. Convergence curve
+    if viz_config.get('convergence_curve') and 'history' in result:
         try:
-            fig = visualizer.plot_parameter_heatmap(
-                solutions=[result['best_solution']],
-                title=f"Best Solution Parameters - {func_name}"
-            )
+            fig = visualizer.plot_convergence_curve(result['history'])
+            plt.title(f"{ALGORITHM.__name__} on {func_name}")
             if SAVE_PLOTS:
-                filename = f"{OUTPUT_DIR}/parameter_heatmap.png"
+                filename = f"{OUTPUT_DIR}/convergence.png"
                 plt.savefig(filename, dpi=150, bbox_inches='tight')
-                print(f"Parameter heatmap saved to: {filename}")
-            plt.show()
+                print(f"✓ Convergence curve: {filename}")
+                plots_generated += 1
+            plt.close()
         except Exception as e:
-            print(f"Could not generate parameter heatmap: {e}")
+            print(f"✗ Convergence curve failed: {e}")
+    
+    # 2. Solution parameters bar chart
+    if viz_config.get('parameter_heatmap') and 'best_solution' in result and len(result['best_solution']) <= 50:
+        try:
+            fig, ax = plt.subplots(figsize=(12, 6))
+            dims = np.arange(len(result['best_solution']))
+            ax.bar(dims, result['best_solution'], alpha=0.7, edgecolor='black')
+            ax.set_xlabel('Dimension')
+            ax.set_ylabel('Value')
+            ax.set_title(f'Best Solution Parameters - {func_name}')
+            ax.grid(True, alpha=0.3)
+            if SAVE_PLOTS:
+                filename = f"{OUTPUT_DIR}/solution_parameters.png"
+                plt.savefig(filename, dpi=150, bbox_inches='tight')
+                print(f"✓ Solution parameters: {filename}")
+                plots_generated += 1
+            plt.close()
+        except Exception as e:
+            print(f"✗ Solution parameters failed: {e}")
+    
+    # 3. Fitness landscape (2D only)
+    if viz_config.get('contour_landscape') and DIMENSIONS == 2:
+        try:
+            # Create 2D landscape
+            x_range = np.linspace(BOUNDS[0] if isinstance(BOUNDS, tuple) else BOUNDS[0][0],
+                                 BOUNDS[1] if isinstance(BOUNDS, tuple) else BOUNDS[0][1], 100)
+            y_range = np.linspace(BOUNDS[0] if isinstance(BOUNDS, tuple) else BOUNDS[1][0] if isinstance(BOUNDS, list) else BOUNDS[0],
+                                 BOUNDS[1] if isinstance(BOUNDS, tuple) else BOUNDS[1][1] if isinstance(BOUNDS, list) else BOUNDS[1], 100)
+            X, Y = np.meshgrid(x_range, y_range)
+            Z = np.zeros_like(X)
+            
+            for i in range(len(x_range)):
+                for j in range(len(y_range)):
+                    Z[j, i] = BENCHMARK_FUNC(np.array([X[j, i], Y[j, i]]))
+            
+            fig, ax = plt.subplots(figsize=(10, 8))
+            contour = ax.contourf(X, Y, Z, levels=50, cmap='viridis')
+            plt.colorbar(contour, ax=ax, label='Fitness')
+            ax.plot(result['best_solution'][0], result['best_solution'][1], 
+                   'r*', markersize=20, label='Best Solution')
+            ax.set_xlabel('x1')
+            ax.set_ylabel('x2')
+            ax.set_title(f'Fitness Landscape - {func_name}')
+            ax.legend()
+            
+            if SAVE_PLOTS:
+                filename = f"{OUTPUT_DIR}/fitness_landscape_2d.png"
+                plt.savefig(filename, dpi=150, bbox_inches='tight')
+                print(f"✓ Fitness landscape: {filename}")
+                plots_generated += 1
+            plt.close()
+        except Exception as e:
+            print(f"✗ Fitness landscape failed: {e}")
+    
+    # 4. Convergence analysis (log scale + linear)
+    if viz_config.get('convergence_curve') and 'history' in result:
+        try:
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+            
+            fitness_history = result['history']['fitness']
+            iterations = range(len(fitness_history))
+            
+            # Log scale
+            ax1.semilogy(iterations, fitness_history, 'b-', linewidth=2)
+            ax1.set_xlabel('Iteration')
+            ax1.set_ylabel('Best Fitness (log scale)')
+            ax1.set_title(f'Convergence (Log Scale) - {func_name}')
+            ax1.grid(True, alpha=0.3)
+            
+            # Linear scale
+            ax2.plot(iterations, fitness_history, 'g-', linewidth=2)
+            ax2.set_xlabel('Iteration')
+            ax2.set_ylabel('Best Fitness')
+            ax2.set_title(f'Convergence (Linear Scale) - {func_name}')
+            ax2.grid(True, alpha=0.3)
+            
+            plt.tight_layout()
+            
+            if SAVE_PLOTS:
+                filename = f"{OUTPUT_DIR}/convergence_analysis.png"
+                plt.savefig(filename, dpi=150, bbox_inches='tight')
+                print(f"✓ Convergence analysis: {filename}")
+                plots_generated += 1
+            plt.close()
+        except Exception as e:
+            print(f"✗ Convergence analysis failed: {e}")
+    
+    # 5. Improvement rate analysis
+    if viz_config.get('population_diversity') and 'history' in result:
+        try:
+            fitness_history = np.array(result['history']['fitness'])
+            improvements = np.diff(fitness_history)
+            improvement_rate = np.abs(improvements) / (fitness_history[:-1] + 1e-10)
+            
+            fig, ax = plt.subplots(figsize=(10, 6))
+            ax.plot(range(len(improvement_rate)), improvement_rate, 'r-', linewidth=2)
+            ax.set_xlabel('Iteration')
+            ax.set_ylabel('Improvement Rate')
+            ax.set_title(f'Fitness Improvement Rate - {func_name}')
+            ax.grid(True, alpha=0.3)
+            ax.set_yscale('log')
+            
+            if SAVE_PLOTS:
+                filename = f"{OUTPUT_DIR}/improvement_rate.png"
+                plt.savefig(filename, dpi=150, bbox_inches='tight')
+                print(f"✓ Improvement rate: {filename}")
+                plots_generated += 1
+            plt.close()
+        except Exception as e:
+            print(f"✗ Improvement rate failed: {e}")
+    
+    print(f"\nTotal plots generated: {plots_generated}")
+    print("=" * 80)
     
     return result
 
@@ -379,60 +489,155 @@ def run_multiple_experiments():
     viz_config = get_visualization_config()
     visualizer = OptimizationVisualizer()
     
-    # Plot convergence curves for all runs
+    print("\n" + "=" * 80)
+    print("GENERATING VISUALIZATIONS")
+    print("=" * 80)
+    
+    plots_generated = 0
+    
+    # 1. Convergence curves for all runs
     if viz_config.get('convergence_curve') and all_histories:
-        plt.figure(figsize=(10, 6))
-        
-        for i, history in enumerate(all_histories):
-            plt.semilogy(history, alpha=0.3, color='blue')
-        
-        # Plot mean convergence
-        histories_array = np.array(all_histories)
-        mean_history = np.mean(histories_array, axis=0)
-        plt.semilogy(mean_history, 'r-', linewidth=2, label='Mean')
-        
-        plt.xlabel('Iteration')
-        plt.ylabel('Best Fitness (log scale)')
-        plt.title(f'{ALGORITHM.__name__} on {func_name} ({NUM_RUNS} runs)')
-        plt.legend()
-        plt.grid(True, alpha=0.3)
-        
-        if SAVE_PLOTS:
-            filename = f"{OUTPUT_DIR}/convergence_multiple_runs.png"
-            plt.savefig(filename, dpi=150, bbox_inches='tight')
-            print(f"Multiple runs convergence saved to: {filename}")
-        
-        plt.show()
-    
-    # Boxplot of final results
-    if viz_config.get('fitness_boxplot'):
-        plt.figure(figsize=(8, 6))
-        plt.boxplot(best_fitness, vert=True)
-        plt.ylabel('Best Fitness')
-        plt.title(f'Distribution of Final Results\n{ALGORITHM.__name__} on {func_name}')
-        plt.grid(True, alpha=0.3)
-        
-        if SAVE_PLOTS:
-            filename = f"{OUTPUT_DIR}/boxplot_distribution.png"
-            plt.savefig(filename, dpi=150, bbox_inches='tight')
-            print(f"Boxplot saved to: {filename}")
-        
-        plt.show()
-    
-    # Population diversity plot
-    if viz_config.get('population_diversity') and all_histories:
         try:
-            fig = visualizer.plot_population_diversity(
-                diversity_history=[np.std(h) for h in all_histories],
-                title=f'Population Diversity - {func_name}'
-            )
-            if SAVE_PLOTS:
-                filename = f"{OUTPUT_DIR}/population_diversity.png"
-                plt.savefig(filename, dpi=150, bbox_inches='tight')
-                print(f"Population diversity saved to: {filename}")
-            plt.show()
+            plt.figure(figsize=(10, 6))
+            
+            # Extract fitness arrays from history dictionaries
+            fitness_histories = []
+            for history in all_histories:
+                if isinstance(history, dict) and 'fitness' in history:
+                    fitness_histories.append(history['fitness'])
+                elif isinstance(history, (list, np.ndarray)):
+                    fitness_histories.append(history)
+            
+            if fitness_histories:
+                for i, fitness_history in enumerate(fitness_histories):
+                    plt.semilogy(fitness_history, alpha=0.3, color='blue')
+                
+                # Plot mean convergence
+                histories_array = np.array(fitness_histories)
+                mean_history = np.mean(histories_array, axis=0)
+                plt.semilogy(mean_history, 'r-', linewidth=2, label='Mean')
+                
+                plt.xlabel('Iteration')
+                plt.ylabel('Best Fitness (log scale)')
+                plt.title(f'{ALGORITHM.__name__} on {func_name} ({NUM_RUNS} runs)')
+                plt.legend()
+                plt.grid(True, alpha=0.3)
+                
+                if SAVE_PLOTS:
+                    filename = f"{OUTPUT_DIR}/convergence_multiple_runs.png"
+                    plt.savefig(filename, dpi=150, bbox_inches='tight')
+                    print(f"✓ Convergence (multiple runs): {filename}")
+                    plots_generated += 1
+            plt.close()
         except Exception as e:
-            print(f"Could not generate diversity plot: {e}")
+            print(f"✗ Convergence plot failed: {e}")
+    
+    # 2. Boxplot of final results
+    if viz_config.get('fitness_boxplot'):
+        try:
+            plt.figure(figsize=(8, 6))
+            plt.boxplot(best_fitness, vert=True)
+            plt.ylabel('Best Fitness')
+            plt.title(f'Distribution of Final Results\n{ALGORITHM.__name__} on {func_name}')
+            plt.grid(True, alpha=0.3)
+            
+            if SAVE_PLOTS:
+                filename = f"{OUTPUT_DIR}/boxplot_distribution.png"
+                plt.savefig(filename, dpi=150, bbox_inches='tight')
+                print(f"✓ Boxplot distribution: {filename}")
+                plots_generated += 1
+            plt.close()
+        except Exception as e:
+            print(f"✗ Boxplot failed: {e}")
+    
+    # 3. Violin plot
+    if viz_config.get('fitness_boxplot') and len(best_fitness) >= 5:
+        try:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            parts = ax.violinplot([best_fitness], vert=True, showmeans=True, showmedians=True)
+            ax.set_ylabel('Best Fitness')
+            ax.set_title(f'Violin Plot - {ALGORITHM.__name__} on {func_name}')
+            ax.grid(True, alpha=0.3, axis='y')
+            
+            if SAVE_PLOTS:
+                filename = f"{OUTPUT_DIR}/violin_plot.png"
+                plt.savefig(filename, dpi=150, bbox_inches='tight')
+                print(f"✓ Violin plot: {filename}")
+                plots_generated += 1
+            plt.close()
+        except Exception as e:
+            print(f"✗ Violin plot failed: {e}")
+    
+    # 4. Statistical summary plot
+    if viz_config.get('fitness_boxplot'):
+        try:
+            fig, ax = plt.subplots(figsize=(10, 6))
+            
+            stats = {
+                'Best': np.min(best_fitness),
+                'Q1': np.percentile(best_fitness, 25),
+                'Median': np.median(best_fitness),
+                'Mean': np.mean(best_fitness),
+                'Q3': np.percentile(best_fitness, 75),
+                'Worst': np.max(best_fitness)
+            }
+            
+            ax.barh(list(stats.keys()), list(stats.values()), alpha=0.7, edgecolor='black')
+            ax.set_xlabel('Fitness Value')
+            ax.set_title(f'Statistical Summary - {ALGORITHM.__name__} on {func_name}')
+            ax.grid(True, alpha=0.3, axis='x')
+            
+            if SAVE_PLOTS:
+                filename = f"{OUTPUT_DIR}/statistical_summary.png"
+                plt.savefig(filename, dpi=150, bbox_inches='tight')
+                print(f"✓ Statistical summary: {filename}")
+                plots_generated += 1
+            plt.close()
+        except Exception as e:
+            print(f"✗ Statistical summary failed: {e}")
+    
+    # 5. Convergence comparison (mean ± std)
+    if viz_config.get('convergence_curve') and all_histories:
+        try:
+            fig, ax = plt.subplots(figsize=(10, 6))
+            
+            # Extract fitness arrays from history dictionaries
+            fitness_histories = []
+            for history in all_histories:
+                if isinstance(history, dict) and 'fitness' in history:
+                    fitness_histories.append(history['fitness'])
+                elif isinstance(history, (list, np.ndarray)):
+                    fitness_histories.append(history)
+            
+            if fitness_histories:
+                histories_array = np.array(fitness_histories)
+                mean_history = np.mean(histories_array, axis=0)
+                std_history = np.std(histories_array, axis=0)
+                iterations = range(len(mean_history))
+                
+                ax.plot(iterations, mean_history, 'b-', linewidth=2, label='Mean')
+                ax.fill_between(iterations, 
+                               mean_history - std_history, 
+                               mean_history + std_history,
+                               alpha=0.3, color='blue', label='±1 Std Dev')
+                ax.set_xlabel('Iteration')
+                ax.set_ylabel('Best Fitness')
+                ax.set_title(f'Convergence with Uncertainty - {func_name}')
+                ax.legend()
+                ax.grid(True, alpha=0.3)
+                ax.set_yscale('log')
+                
+                if SAVE_PLOTS:
+                    filename = f"{OUTPUT_DIR}/convergence_uncertainty.png"
+                    plt.savefig(filename, dpi=150, bbox_inches='tight')
+                    print(f"✓ Convergence uncertainty: {filename}")
+                    plots_generated += 1
+            plt.close()
+        except Exception as e:
+            print(f"✗ Convergence uncertainty failed: {e}")
+    
+    print(f"\nTotal plots generated: {plots_generated}")
+    print("=" * 80)
     
     return best_fitness, all_histories
 
