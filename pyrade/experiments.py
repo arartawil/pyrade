@@ -348,19 +348,33 @@ class ExperimentManager:
             if verbose and (run + 1) % 10 == 0:
                 print(f"    Completed {run + 1}/{self.n_runs} runs")
         
-        # Compute statistics
+        # Compute statistics with proper numerical handling
+        final_fitness_array = np.array(final_fitness_values, dtype=np.float64)
+        execution_times_array = np.array(execution_times, dtype=np.float64)
+        
+        # Filter out any inf/nan values for robust statistics
+        valid_fitness = final_fitness_array[np.isfinite(final_fitness_array)]
+        if len(valid_fitness) == 0:
+            valid_fitness = final_fitness_array  # Use all if none are finite
+        
+        # Compute robust statistics
         return {
             'convergence_histories': convergence_histories,
             'final_fitness': final_fitness_values,
             'best_solutions': best_solutions,
             'execution_times': execution_times,
-            'mean_fitness': np.mean(final_fitness_values),
-            'std_fitness': np.std(final_fitness_values),
-            'min_fitness': np.min(final_fitness_values),
-            'max_fitness': np.max(final_fitness_values),
-            'median_fitness': np.median(final_fitness_values),
-            'mean_time': np.mean(execution_times),
-            'total_time': np.sum(execution_times)
+            'mean_fitness': float(np.mean(valid_fitness)),
+            'std_fitness': float(np.std(valid_fitness, ddof=1) if len(valid_fitness) > 1 else 0.0),
+            'min_fitness': float(np.min(valid_fitness)),
+            'max_fitness': float(np.max(valid_fitness)),
+            'median_fitness': float(np.median(valid_fitness)),
+            'q25_fitness': float(np.percentile(valid_fitness, 25)),
+            'q75_fitness': float(np.percentile(valid_fitness, 75)),
+            'mean_time': float(np.mean(execution_times_array)),
+            'std_time': float(np.std(execution_times_array, ddof=1) if len(execution_times_array) > 1 else 0.0),
+            'total_time': float(np.sum(execution_times_array)),
+            'n_valid_runs': int(len(valid_fitness)),
+            'n_total_runs': int(len(final_fitness_values))
         }
     
     def plot_convergence_curves(self, save: bool = True) -> Dict[str, plt.Figure]:

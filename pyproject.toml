@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyrade"
-version = "0.3.0"
+version = "0.3.1"
 description = "High-performance, modular Differential Evolution optimization"
 readme = "README.md"
 authors = [

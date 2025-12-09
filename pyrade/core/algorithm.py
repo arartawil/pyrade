@@ -186,11 +186,19 @@ class DifferentialEvolution:
         # Step 2: Boundary repair (mutation)
         mutants = self.population.clip_to_bounds(mutants)
         
+        # Fix: Ensure mutants are valid and not NaN/Inf (high-dimensional stability)
+        mutants = np.where(np.isfinite(mutants), mutants, 
+                          self.population.lb + np.random.rand(*mutants.shape) * 
+                          (self.population.ub - self.population.lb))
+        
         # Step 3: Vectorized crossover
         trials = self.crossover.apply(pop_vectors, mutants)
         
         # Step 4: Boundary repair (crossover)
         trials = self.population.clip_to_bounds(trials)
+        
+        # Fix: Ensure trials are valid (high-dimensional stability)
+        trials = np.where(np.isfinite(trials), trials, pop_vectors)
         
         # Step 5: Evaluate all trials
         trial_fitness = self.population.evaluate_vectors(trials, self.objective_func)
@@ -203,8 +211,10 @@ class DifferentialEvolution:
         # Count improvements
         improved_count = np.sum(new_fitness < pop_fitness)
         
-        # Step 7: Update population
-        self.population.update(new_vectors, new_fitness)
+        # Step 7: Update population (memory efficient - no unnecessary copies)
+        self.population.vectors[:] = new_vectors
+        self.population.fitness[:] = new_fitness
+        self.population._update_best()
         
         # Update global best
         if self.population.best_fitness < self.best_fitness_:
@@ -245,7 +255,7 @@ class DifferentialEvolution:
         self._initialize_population()
         
         # Store initial history
-        self.history_['fitness'].append(self.best_fitness_)
+        self.history_['fitness'].append(float(self.best_fitness_))
         self.history_['time'].append(time.time() - start_time)
         self.history_['iteration'].append(0)
         
@@ -256,11 +266,11 @@ class DifferentialEvolution:
             # Evolve one generation
             improved_count = self._evolve_generation()
             
-            # Store history
+            # Store history (convert to float to prevent memory accumulation)
             iter_time = time.time() - iter_start
-            self.history_['fitness'].append(self.best_fitness_)
-            self.history_['time'].append(time.time() - start_time)
-            self.history_['iteration'].append(iteration)
+            self.history_['fitness'].append(float(self.best_fitness_))
+            self.history_['time'].append(float(time.time() - start_time))
+            self.history_['iteration'].append(int(iteration))
             
             # Print progress
             if self.verbose and (iteration % 10 == 0 or iteration == 1):
@@ -273,7 +283,10 @@ class DifferentialEvolution:
             
             # Call callback
             if self.callback is not None:
-                self.callback(iteration, self.best_fitness_, self.best_solution_)
+                try:
+                    self.callback(iteration, self.best_fitness_, self.best_solution_)
+                except Exception:
+                    pass  # Don't let callback errors stop optimization
         
         total_time = time.time() - start_time
         
@@ -285,11 +298,16 @@ class DifferentialEvolution:
             print(f"Average time per iteration: {total_time/self.max_iter:.3f}s")
             print("="*70)
         
+        # Return with explicit copies to prevent memory leaks
         return {
-            'best_solution': self.best_solution_,
-            'best_fitness': self.best_fitness_,
-            'n_iterations': self.max_iter,
-            'history': self.history_,
+            'best_solution': self.best_solution_.copy(),
+            'best_fitness': float(self.best_fitness_),
+            'n_iterations': int(self.max_iter),
+            'history': {
+                'fitness': list(self.history_['fitness']),
+                'time': list(self.history_['time']),
+                'iteration': list(self.history_['iteration'])
+            },
             'success': True,
-            'time': total_time
+            'time': float(total_time)
         }

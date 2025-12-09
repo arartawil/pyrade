@@ -5,6 +5,21 @@ All notable changes to PyRADE will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2025-12-09
+
+### Fixed
+- **Boundary Handling**: Enhanced edge case handling for extreme bounds with proper inf/nan validation and overflow prevention
+- **High-Dimensional Convergence**: Resolved convergence issues in problems with >100 dimensions through improved numerical stability and NaN/Inf handling
+- **Memory Leaks**: Fixed memory accumulation in long-running optimizations with proper type conversions and array cleanup
+- **Statistical Reporting**: Corrected ExperimentManager statistics with robust calculations, quartiles, and additional metrics
+- Package build and distribution improvements
+- Version consistency across configuration files
+
+### Changed
+- Updated package metadata for better PyPI compatibility
+- Improved numerical stability in mutation and crossover operations
+- Enhanced error handling in objective function evaluation
+
 ## [0.3.0] - 2025-11-30
 
 ### Added

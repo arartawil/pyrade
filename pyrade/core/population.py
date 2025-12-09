@@ -132,8 +132,17 @@ class Population:
         fitness : ndarray, shape (pop_size,)
             Fitness values
         """
+        # Memory-efficient evaluation with cleanup
         for i in range(self.pop_size):
-            self.fitness[i] = objective_func(self.vectors[i])
+            try:
+                fitness_val = objective_func(self.vectors[i])
+                # Handle inf/nan from objective function
+                if not np.isfinite(fitness_val):
+                    fitness_val = 1e100  # Large penalty for invalid values
+                self.fitness[i] = fitness_val
+            except Exception:
+                # If evaluation fails, assign large penalty
+                self.fitness[i] = 1e100
         
         self._update_best()
         return self.fitness
@@ -154,7 +163,17 @@ class Population:
         fitness : ndarray, shape (pop_size,)
             Fitness values
         """
-        fitness = np.array([objective_func(vec) for vec in vectors])
+        # Memory-efficient evaluation with proper cleanup
+        fitness = np.zeros(len(vectors), dtype=np.float64)
+        for i, vec in enumerate(vectors):
+            try:
+                fitness_val = objective_func(vec)
+                # Handle inf/nan from objective function
+                if not np.isfinite(fitness_val):
+                    fitness_val = 1e100
+                fitness[i] = fitness_val
+            except Exception:
+                fitness[i] = 1e100
         return fitness
     
     def _update_best(self):

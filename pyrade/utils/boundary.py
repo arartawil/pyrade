@@ -54,6 +54,20 @@ class ClipBoundary(BoundaryHandler):
     
     def repair(self, vectors, lb, ub):
         """Clip vectors to bounds (fully vectorized)."""
+        # Handle extreme bounds and edge cases
+        lb = np.asarray(lb, dtype=np.float64)
+        ub = np.asarray(ub, dtype=np.float64)
+        vectors = np.asarray(vectors, dtype=np.float64)
+        
+        # Check for inf/nan in bounds
+        if not np.all(np.isfinite(lb)) or not np.all(np.isfinite(ub)):
+            raise ValueError("Bounds must be finite")
+        
+        # Handle very large bounds to prevent overflow
+        max_bound = 1e308  # Close to float64 max
+        lb = np.clip(lb, -max_bound, max_bound)
+        ub = np.clip(ub, -max_bound, max_bound)
+        
         return np.clip(vectors, lb, ub)
 
 
@@ -72,15 +86,29 @@ class ReflectBoundary(BoundaryHandler):
     
     def repair(self, vectors, lb, ub):
         """Reflect vectors at bounds (fully vectorized)."""
-        repaired = vectors.copy()
+        lb = np.asarray(lb, dtype=np.float64)
+        ub = np.asarray(ub, dtype=np.float64)
+        repaired = np.asarray(vectors, dtype=np.float64).copy()
+        
+        # Validate bounds
+        if not np.all(np.isfinite(lb)) or not np.all(np.isfinite(ub)):
+            raise ValueError("Bounds must be finite")
         
         # Reflect lower bound violations
         mask_lower = repaired < lb
-        repaired[mask_lower] = lb + (lb - repaired[mask_lower])
+        if np.any(mask_lower):
+            diff = lb - repaired[mask_lower]
+            # Prevent reflection overflow in extreme cases
+            diff = np.clip(diff, -1e100, 1e100)
+            repaired[mask_lower] = lb + diff
         
         # Reflect upper bound violations
         mask_upper = repaired > ub
-        repaired[mask_upper] = ub - (repaired[mask_upper] - ub)
+        if np.any(mask_upper):
+            diff = repaired[mask_upper] - ub
+            # Prevent reflection overflow in extreme cases
+            diff = np.clip(diff, -1e100, 1e100)
+            repaired[mask_upper] = ub - diff
         
         # If reflected value still violates, clip it
         repaired = np.clip(repaired, lb, ub)
