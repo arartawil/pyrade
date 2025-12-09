@@ -7,12 +7,24 @@ fully vectorized operations for high performance.
 
 import numpy as np
 import time
-from typing import Callable, Optional, Dict, Any
+import logging
+from typing import Callable, Optional, Dict, Any, Union, Tuple
+
+try:
+    from tqdm import tqdm
+    TQDM_AVAILABLE = True
+except ImportError:
+    TQDM_AVAILABLE = False
+    tqdm = None
 
 from pyrade.core.population import Population
 from pyrade.operators.mutation import DErand1
 from pyrade.operators.crossover import BinomialCrossover
 from pyrade.operators.selection import GreedySelection
+
+
+# Configure module logger
+logger = logging.getLogger(__name__)
 
 
 class DifferentialEvolution:
@@ -28,6 +40,8 @@ class DifferentialEvolution:
     - Strategy pattern for operators (easy to extend)
     - Professional API (fit/predict style)
     - Progress tracking and callbacks
+    - Progress bar support (tqdm integration)
+    - Comprehensive logging support
     
     Parameters
     ----------
@@ -42,13 +56,15 @@ class DifferentialEvolution:
     selection : SelectionStrategy, optional
         Selection strategy (default: Greedy)
     pop_size : int, default=50
-        Population size
+        Population size (must be >= 4)
     max_iter : int, default=1000
-        Maximum iterations
+        Maximum iterations (must be >= 1)
     seed : int, optional
         Random seed for reproducibility
     verbose : bool, default=False
-        Print progress
+        Print progress information
+    show_progress : bool, default=False
+        Show progress bar (requires tqdm)
     callback : callable, optional
         Called after each iteration: callback(iteration, best_fitness, best_solution)
     
@@ -84,24 +100,35 @@ class DifferentialEvolution:
     def __init__(
         self,
         objective_func: Callable[[np.ndarray], float],
-        bounds,
-        mutation=None,
-        crossover=None,
-        selection=None,
+        bounds: Union[Tuple[float, float], np.ndarray],
+        mutation: Optional[Any] = None,
+        crossover: Optional[Any] = None,
+        selection: Optional[Any] = None,
         pop_size: int = 50,
         max_iter: int = 1000,
         seed: Optional[int] = None,
         verbose: bool = False,
+        show_progress: bool = False,
         callback: Optional[Callable] = None
     ):
         """Initialize Differential Evolution optimizer."""
-        # Validate inputs
+        logger.info("Initializing DifferentialEvolution optimizer")
+        
+        # Validate inputs with detailed error messages
         if not callable(objective_func):
-            raise ValueError("objective_func must be callable")
-        if pop_size < 4:
-            raise ValueError("pop_size must be at least 4")
-        if max_iter < 1:
-            raise ValueError("max_iter must be at least 1")
+            error_msg = "objective_func must be callable. Received: {}".format(type(objective_func).__name__)
+            logger.error(error_msg)
+            raise TypeError(error_msg)
+        
+        if not isinstance(pop_size, int) or pop_size < 4:
+            error_msg = "pop_size must be an integer >= 4 (got: {}). DE requires at least 4 individuals for mutation.".format(pop_size)
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        
+        if not isinstance(max_iter, int) or max_iter < 1:
+            error_msg = "max_iter must be an integer >= 1 (got: {})".format(max_iter)
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         
         self.objective_func = objective_func
         self.bounds = bounds
@@ -109,27 +136,54 @@ class DifferentialEvolution:
         self.max_iter = max_iter
         self.seed = seed
         self.verbose = verbose
+        self.show_progress = show_progress and TQDM_AVAILABLE
         self.callback = callback
+        
+        # Log warning if progress bar requested but tqdm not available
+        if show_progress and not TQDM_AVAILABLE:
+            warning_msg = "Progress bar requested but tqdm is not installed. Install with: pip install tqdm"
+            logger.warning(warning_msg)
+            if verbose:
+                print(f"Warning: {warning_msg}")
         
         # Initialize operators with defaults if not provided
         self.mutation = mutation if mutation is not None else DErand1(F=0.8)
         self.crossover = crossover if crossover is not None else BinomialCrossover(CR=0.9)
         self.selection = selection if selection is not None else GreedySelection()
         
-        # Infer dimensionality from bounds
-        bounds_array = np.array(bounds)
+        logger.debug(f"Operators initialized: Mutation={self.mutation.__class__.__name__}, "
+                    f"Crossover={self.crossover.__class__.__name__}, "
+                    f"Selection={self.selection.__class__.__name__}")
+        
+        # Infer dimensionality from bounds with enhanced validation
+        try:
+            bounds_array = np.array(bounds)
+        except Exception as e:
+            error_msg = f"Failed to convert bounds to numpy array: {e}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        
         if bounds_array.ndim == 1:
-            # Need to test objective function to get dimensionality
-            # For now, raise error - user should specify dimension-aware bounds
-            raise ValueError(
+            error_msg = (
                 "Cannot infer dimensionality from scalar bounds. "
-                "Please provide bounds as [(lb1, ub1), (lb2, ub2), ...] "
-                "or specify dimension explicitly."
+                "Please provide bounds as [(lb1, ub1), (lb2, ub2), ...] or "
+                "as a 2D array with shape (n_dimensions, 2). "
+                f"Received bounds shape: {bounds_array.shape}"
             )
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        
         self.dim = bounds_array.shape[0]
+        logger.info(f"Problem dimensionality: {self.dim}D")
         
         # Initialize population
-        self.population = Population(pop_size, self.dim, bounds, seed)
+        try:
+            self.population = Population(pop_size, self.dim, bounds, seed)
+            logger.info(f"Population initialized: size={pop_size}, dimensions={self.dim}")
+        except Exception as e:
+            error_msg = f"Failed to initialize population: {e}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg) from e
         
         # Results storage
         self.best_solution_ = None
@@ -139,6 +193,8 @@ class DifferentialEvolution:
             'time': [],
             'iteration': []
         }
+        
+        logger.debug("Initialization complete")
     
     def _initialize_population(self):
         """Initialize random population and evaluate fitness."""
@@ -259,8 +315,13 @@ class DifferentialEvolution:
         self.history_['time'].append(time.time() - start_time)
         self.history_['iteration'].append(0)
         
-        # Main optimization loop
-        for iteration in range(1, self.max_iter + 1):
+        # Main optimization loop with optional progress bar
+        iterator = range(1, self.max_iter + 1)
+        if self.show_progress:
+            iterator = tqdm(iterator, desc="Optimizing", unit="iter",
+                          bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]')
+        
+        for iteration in iterator:
             iter_start = time.time()
             
             # Evolve one generation
@@ -272,8 +333,15 @@ class DifferentialEvolution:
             self.history_['time'].append(float(time.time() - start_time))
             self.history_['iteration'].append(int(iteration))
             
-            # Print progress
-            if self.verbose and (iteration % 10 == 0 or iteration == 1):
+            # Update progress bar postfix if available
+            if self.show_progress:
+                iterator.set_postfix({
+                    'best': f'{self.best_fitness_:.6e}',
+                    'improved': f'{improved_count}/{self.pop_size}'
+                })
+            
+            # Print progress (only if not using progress bar)
+            if self.verbose and not self.show_progress and (iteration % 10 == 0 or iteration == 1):
                 print(
                     f"Iter {iteration:4d} | "
                     f"Best: {self.best_fitness_:.6e} | "
@@ -281,14 +349,23 @@ class DifferentialEvolution:
                     f"Time: {iter_time:.3f}s"
                 )
             
+            # Log detailed progress
+            if iteration % 100 == 0 or iteration == 1:
+                logger.debug(f"Iteration {iteration}/{self.max_iter}: "
+                           f"best_fitness={self.best_fitness_:.6e}, "
+                           f"improved={improved_count}/{self.pop_size}")
+            
             # Call callback
             if self.callback is not None:
                 try:
                     self.callback(iteration, self.best_fitness_, self.best_solution_)
-                except Exception:
-                    pass  # Don't let callback errors stop optimization
+                except Exception as e:
+                    logger.warning(f"Callback error at iteration {iteration}: {e}")
         
         total_time = time.time() - start_time
+        
+        logger.info(f"Optimization complete: best_fitness={self.best_fitness_:.6e}, "
+                   f"total_time={total_time:.3f}s, iterations={self.max_iter}")
         
         if self.verbose:
             print("="*70)

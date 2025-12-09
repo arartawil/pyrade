@@ -30,7 +30,8 @@ classifiers = [
 keywords = ["optimization", "differential evolution", "evolutionary algorithms", "metaheuristics"]
 requires-python = ">=3.7"
 dependencies = [
-    "numpy>=1.20.0"
+    "numpy>=1.20.0",
+    "tqdm>=4.65.0"
 ]
 
 [project.optional-dependencies]

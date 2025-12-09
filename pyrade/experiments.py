@@ -10,14 +10,25 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Optional, Callable, Union, Tuple
+from typing import List, Dict, Optional, Callable, Union, Tuple, Any
 import json
 import warnings
+import logging
+
+try:
+    from tqdm import tqdm
+    TQDM_AVAILABLE = True
+except ImportError:
+    TQDM_AVAILABLE = False
+    tqdm = None
 
 from pyrade.core.algorithm import DifferentialEvolution
 from pyrade.operators import DErand1, BinomialCrossover
 from pyrade.visualization import OptimizationVisualizer
 from pyrade import benchmarks
+
+# Configure module logger
+logger = logging.getLogger(__name__)
 
 
 class ExperimentManager:
@@ -109,7 +120,7 @@ class ExperimentManager:
     
     def __init__(
         self,
-        benchmarks: Union[List[str], List[Callable], str, Callable] = None,
+        benchmarks: Union[List[str], List[Callable], str, Callable, None] = None,
         dimensions: int = 10,
         n_runs: int = 30,
         population_size: int = 50,
@@ -119,9 +130,22 @@ class ExperimentManager:
         mutation: Optional[Union[str, Callable, object]] = None,
         experiment_name: Optional[str] = None,
         base_folder: str = 'experiments',
-        seed: Optional[int] = None
+        seed: Optional[int] = None,
+        show_progress: bool = True
     ):
         """Initialize the experiment manager."""
+        logger.info("Initializing ExperimentManager")
+        # Validate inputs
+        if not isinstance(dimensions, int) or dimensions < 1:
+            error_msg = f"dimensions must be a positive integer (got: {dimensions})"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        
+        if not isinstance(n_runs, int) or n_runs < 1:
+            error_msg = f"n_runs must be a positive integer (got: {n_runs})"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        
         # Configuration
         self.dimensions = dimensions
         self.n_runs = n_runs
@@ -134,6 +158,13 @@ class ExperimentManager:
         # If None, default to DErand1 during runs.
         self.mutation = mutation
         self.seed = seed if seed is not None else np.random.randint(0, 10000)
+        self.show_progress = show_progress and TQDM_AVAILABLE
+        
+        # Log warning if progress bar requested but tqdm not available
+        if show_progress and not TQDM_AVAILABLE:
+            logger.warning("Progress bar requested but tqdm is not installed. Install with: pip install tqdm")
+        
+        logger.debug(f"Configuration: D={dimensions}, runs={n_runs}, pop={population_size}, iter={max_iterations}")
         
         # Setup benchmark functions
         self.benchmark_configs = {}
@@ -310,30 +341,45 @@ class ExperimentManager:
 
         return self.results
     
-    def _run_benchmark(self, bench_name: str, func: Callable, bounds: list, verbose: bool = False):
+    def _run_benchmark(self, bench_name: str, func: Callable, bounds: list, verbose: bool = False) -> Dict[str, Any]:
         """Run multiple optimization runs for a single benchmark."""
+        logger.info(f"Starting benchmark: {bench_name} ({self.n_runs} runs)")
+        
         convergence_histories = []
         final_fitness_values = []
         best_solutions = []
         execution_times = []
         
-        for run in range(self.n_runs):
+        # Create progress bar for runs if enabled
+        run_iterator = range(self.n_runs)
+        if self.show_progress:
+            run_iterator = tqdm(run_iterator, desc=f"{bench_name}", unit="run", leave=False)
+        
+        for run in run_iterator:
             # Build mutation instance (respecting user config)
             mutation_instance = self._build_mutation_instance()
 
             # Run single optimization
-            de = DifferentialEvolution(
-                objective_func=func,
-                bounds=np.array(bounds),
-                mutation=mutation_instance,
-                crossover=BinomialCrossover(CR=self.CR),
-                pop_size=self.population_size,
-                max_iter=self.max_iterations,
-                seed=self.seed + run,
-                verbose=False
-            )
-            
-            result = de.optimize()
+            try:
+                de = DifferentialEvolution(
+                    objective_func=func,
+                    bounds=np.array(bounds),
+                    mutation=mutation_instance,
+                    crossover=BinomialCrossover(CR=self.CR),
+                    pop_size=self.population_size,
+                    max_iter=self.max_iterations,
+                    seed=self.seed + run,
+                    verbose=False,
+                    show_progress=False  # Don't show inner progress bar
+                )
+                
+                result = de.optimize()
+            except Exception as e:
+                error_msg = f"Error in run {run+1}/{self.n_runs} for {bench_name}: {e}"
+                logger.error(error_msg)
+                if verbose:
+                    print(f"  Warning: {error_msg}")
+                continue
             
             # Store results
             final_fitness_values.append(result['best_fitness'])
@@ -345,8 +391,10 @@ class ExperimentManager:
             else:
                 convergence_histories.append([result['best_fitness']] * (self.max_iterations + 1))
             
-            if verbose and (run + 1) % 10 == 0:
+            if verbose and not self.show_progress and (run + 1) % 10 == 0:
                 print(f"    Completed {run + 1}/{self.n_runs} runs")
+            
+            logger.debug(f"Run {run+1}/{self.n_runs} complete: fitness={result['best_fitness']:.6e}")
         
         # Compute statistics with proper numerical handling
         final_fitness_array = np.array(final_fitness_values, dtype=np.float64)
@@ -355,7 +403,10 @@ class ExperimentManager:
         # Filter out any inf/nan values for robust statistics
         valid_fitness = final_fitness_array[np.isfinite(final_fitness_array)]
         if len(valid_fitness) == 0:
+            logger.warning(f"{bench_name}: No valid fitness values found (all inf/nan)")
             valid_fitness = final_fitness_array  # Use all if none are finite
+        elif len(valid_fitness) < len(final_fitness_array):
+            logger.warning(f"{bench_name}: {len(final_fitness_array) - len(valid_fitness)} runs had inf/nan fitness")
         
         # Compute robust statistics
         return {

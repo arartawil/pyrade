@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.1] - 2025-12-09
 
+### Added
+- **Progress Bar Support**: Integrated tqdm for visual progress tracking during optimization
+- **Logging Support**: Comprehensive logging using Python's logging module throughout the codebase
+- **Type Hints**: Added type hints to all major classes and methods for better IDE support and type checking
+- **Enhanced Validation**: Improved input validation with detailed error messages
+
 ### Fixed
 - **Boundary Handling**: Enhanced edge case handling for extreme bounds with proper inf/nan validation and overflow prevention
 - **High-Dimensional Convergence**: Resolved convergence issues in problems with >100 dimensions through improved numerical stability and NaN/Inf handling
@@ -19,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated package metadata for better PyPI compatibility
 - Improved numerical stability in mutation and crossover operations
 - Enhanced error handling in objective function evaluation
+- Better error messages with contextual information
 
 ## [0.3.0] - 2025-11-30
 
