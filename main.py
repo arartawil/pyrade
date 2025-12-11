@@ -11,6 +11,7 @@ Or import and use as functions:
 """
 
 from pyrade import DErand1bin, DEbest1bin, DEcurrentToBest1bin
+from pyrade.algorithms.adaptive import jDE, SaDE, JADE, SHADE, LSHADE, LSHADEEpSin, jSO, APSDE
 from pyrade.benchmarks import sphere, rosenbrock, rastrigin, ackley, schwefel
 from pyrade.benchmarks import get_benchmark, list_benchmarks
 from pyrade.runner import run_experiment, compare_algorithms
@@ -21,13 +22,23 @@ from pyrade.runner import run_experiment, compare_algorithms
 # ============================================================================
 
 # Select Algorithm (uncomment one or add your own)
+# Classic DE Algorithms:
 ALGORITHM = DErand1bin
 # ALGORITHM = DEbest1bin
 # ALGORITHM = DEcurrentToBest1bin
 # ALGORITHM = DErand2bin
 # ALGORITHM = DEbest2bin
 # ALGORITHM = DErand1exp
-# ALGORITHM = jDE  # Adaptive algorithm
+
+# Adaptive DE Algorithms (NEW in v0.4.0):
+# ALGORITHM = jDE          # Self-adaptive F and CR
+# ALGORITHM = SaDE         # Strategy pool adaptation
+# ALGORITHM = JADE         # Archive-based adaptation
+# ALGORITHM = SHADE        # Success-history adaptation
+# ALGORITHM = LSHADE       # SHADE + population reduction
+# ALGORITHM = LSHADEEpSin  # Ensemble + sinusoidal reduction
+# ALGORITHM = jSO          # CEC 2020 winner
+# ALGORITHM = APSDE        # Fitness-based adaptation
 
 # Select Benchmark Function 
 BENCHMARK_FUNC = sphere
@@ -42,6 +53,11 @@ BENCHMARK_FUNC = sphere
 # Or CEC2017 functions:
 # from pyrade.benchmarks import CEC2017Function
 # BENCHMARK_FUNC = CEC2017Function(func_num=5, dimensions=30)
+
+# Or CEC2022 functions (NEW in v0.4.0):
+# from pyrade.benchmarks import CEC2022
+# BENCHMARK_FUNC = CEC2022(func_num=1, dim=10, data_dir='path/to/cec2022_data')
+# NOTE: CEC2022 requires data files - see pyrade/benchmarks/CEC2022_README.md
 
 # Problem Configuration
 DIMENSIONS = 30
@@ -99,7 +115,12 @@ if __name__ == "__main__":
         algorithms_to_compare = [
             DErand1bin,
             DEbest1bin,
-            DEcurrentToBest1bin
+            DEcurrentToBest1bin,
+            # Uncomment to compare with adaptive algorithms:
+            # jDE,
+            # JADE,
+            # SHADE,
+            # LSHADE,
         ]
         
         results = compare_algorithms(

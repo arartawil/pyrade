@@ -64,6 +64,9 @@ from pyrade.benchmarks.functions import (
 # CEC2017 Competition Functions
 from pyrade.benchmarks.cec2017 import CEC2017Function
 
+# CEC2022 Competition Functions
+from pyrade.benchmarks.cec2022 import CEC2022, cec2022_func, get_cec2022_bounds
+
 __all__ = [
     # Base
     "BenchmarkFunction",
@@ -96,6 +99,11 @@ __all__ = [
     
     # CEC2017
     "CEC2017Function",
+    
+    # CEC2022
+    "CEC2022",
+    "cec2022_func",
+    "get_cec2022_bounds",
     
     # Utilities
     "get_benchmark",
