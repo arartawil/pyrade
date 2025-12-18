@@ -139,6 +139,39 @@ python adaptive_features_demo.py
 
 Expected runtime: ~2-3 minutes
 
+### `enhanced_operators_demo.py` ⭐ NEW in v0.4.4
+**Demonstrates enhanced operators** - Shows all new v0.4.4 features including advanced crossover, mutation, and parameter control strategies.
+
+**Features:**
+- Five comprehensive demonstrations with comparison plots
+- New crossover operators: Arithmetic and Three-Point
+- Lévy flight-based mutation with different beta parameters
+- Opposition-Based Learning (OBL) for initialization and generation jumping
+- Chaotic maps (Logistic, Tent, Sine, Chebyshev) for parameter control
+- Combined usage showing synergy of all features
+
+**Usage:**
+```bash
+python enhanced_operators_demo.py
+```
+
+**Output:**
+- `crossover_comparison_demo.png` - Crossover strategy comparison
+- `levy_mutation_demo.png` - Lévy flight vs standard mutation
+- `obl_demo.png` - Opposition-based learning impact
+- `chaotic_sequences_demo.png` - Chaotic map visualizations
+- `chaotic_control_demo.png` - Chaotic parameter control results
+- `combined_features_demo.png` - All features combined performance
+
+**Key Concepts:**
+- **Arithmetic Crossover**: Weighted blending for smoother exploration
+- **Three-Point Crossover**: Better diversity through segment exchange
+- **Lévy Flight Mutation**: Heavy-tailed distribution for escaping local optima
+- **Opposition-Based Learning**: Simultaneous evaluation of solutions and opposites
+- **Chaotic Maps**: Deterministic but random-like parameter sequences
+
+Expected runtime: ~5-7 minutes
+
 ---
 
 ## Visualization API

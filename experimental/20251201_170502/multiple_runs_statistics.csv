@@ -1,0 +1,12 @@
+Metric,Value
+Algorithm,DErand1bin
+Function,sphere
+Dimensions,30
+Number of Runs,10
+""
+Statistical Results,
+Best,352.80124694519185
+Worst,1795.3564074391595
+Mean,793.4081803530689
+Median,659.1850357432629
+Std Dev,442.697873243336

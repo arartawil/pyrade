@@ -5,6 +5,37 @@ All notable changes to PyRADE will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4] - 2025-12-18
+
+### Added
+- **Enhanced Crossover Operators**:
+  - `ArithmeticCrossover`: Weighted linear combination of parent and mutant
+  - `ThreePointCrossover`: Three-point segment exchange crossover
+- **Lévy Flight Mutation**: 
+  - `LevyFlightMutation`: DE mutation with Lévy flight step sizes
+  - Heavy-tailed distribution for better exploration
+  - Configurable beta parameter for flight characteristics
+- **Opposition-Based Learning (OBL)**:
+  - `OppositionBasedLearning` class for population initialization
+  - Four opposition types: simple, quasi, quasi-reflected, generalized
+  - Generation jumping mechanism for escaping local optima
+  - Convenience function `apply_obl_initialization`
+- **Chaotic Maps for Parameter Control**:
+  - `LogisticMap`: Classic chaotic map (r=4.0)
+  - `TentMap`: Piecewise linear chaotic map
+  - `SineMap`: Sine-based chaotic map
+  - `ChebyshevMap`: Chebyshev polynomial-based map
+  - `ChaoticParameterController`: Automatic F and CR control
+  - Convenience function `create_chaotic_controller`
+- **New Module**: `pyrade.utils.opposition` for OBL functionality
+- **New Module**: `pyrade.utils.chaotic` for chaotic parameter control
+- Updated all `__init__.py` files to export new operators
+
+### Changed
+- Enhanced `pyrade.operators` module with new strategies
+- Expanded `pyrade.utils` with advanced optimization techniques
+- Updated version to 0.4.4
+
 ## [0.4.2] - 2025-12-18
 
 ### Added

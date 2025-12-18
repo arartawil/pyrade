@@ -1,0 +1,10 @@
+Metric,Value
+Algorithm,DErand1bin
+Function,sphere
+Dimensions,30
+Population,50
+Iterations,1000
+F,0.8
+CR,0.9
+Best Fitness,896.3345958413876
+Time (s),0.3042311668395996

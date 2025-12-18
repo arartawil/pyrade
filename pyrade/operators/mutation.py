@@ -506,3 +506,112 @@ class DErand1EitherOr(MutationStrategy):
         # Vectorized mutation with either-or F
         mutants = population[r1] + F_i[:, np.newaxis] * (population[r2] - population[r3])
         return mutants
+
+
+class LevyFlightMutation(MutationStrategy):
+    """
+    Lévy flight-based mutation: DE/rand/1 with Lévy flight step sizes.
+    
+    Uses Lévy flight random walk for generating step sizes, which provides
+    heavy-tailed distribution beneficial for exploration. Lévy flights consist
+    of many small steps with occasional large jumps, mimicking optimal foraging
+    patterns found in nature.
+    
+    Formula: v = x_r1 + L(β) * (x_r2 - x_r3)
+    where L(β) is a Lévy flight step size with stability parameter β
+    
+    Parameters
+    ----------
+    beta : float, default=1.5
+        Lévy flight stability parameter (0 < β <= 2)
+        β=1.0: Cauchy distribution (very heavy tails)
+        β=1.5: stable distribution (recommended)
+        β=2.0: Gaussian distribution (light tails)
+    scale : float, default=0.01
+        Scale factor for Lévy flight step sizes
+    
+    Notes
+    -----
+    Lévy flight mutation is useful for:
+    - Escaping local optima through large jumps
+    - Maintaining good local search through small steps
+    - Multimodal optimization problems
+    - Exploration-exploitation balance
+    
+    The Mantegna method is used to generate Lévy flight samples efficiently.
+    
+    References
+    ----------
+    Yang, X. S., & Deb, S. (2009). Cuckoo search via Lévy flights.
+    In 2009 World congress on nature & biologically inspired computing.
+    
+    Examples
+    --------
+    >>> mutation = LevyFlightMutation(beta=1.5, scale=0.01)
+    >>> mutation = LevyFlightMutation(beta=1.0)  # Cauchy-like
+    """
+    
+    def __init__(self, beta=1.5, scale=0.01):
+        if not 0 < beta <= 2:
+            raise ValueError("beta must be in (0, 2]")
+        self.beta = beta
+        self.scale = scale
+        
+        # Precompute sigma for Mantegna method
+        from scipy import special
+        numerator = special.gamma(1 + beta) * np.sin(np.pi * beta / 2)
+        denominator = special.gamma((1 + beta) / 2) * beta * (2 ** ((beta - 1) / 2))
+        self.sigma = (numerator / denominator) ** (1 / beta)
+    
+    def _levy_flight(self, size):
+        """
+        Generate Lévy flight samples using Mantegna method.
+        
+        Parameters
+        ----------
+        size : int
+            Number of samples to generate
+            
+        Returns
+        -------
+        levy_samples : ndarray
+            Lévy flight samples
+        """
+        # Mantegna method for stable Lévy distribution
+        u = np.random.normal(0, self.sigma, size)
+        v = np.random.normal(0, 1, size)
+        step = u / (np.abs(v) ** (1 / self.beta))
+        
+        return self.scale * step
+    
+    def apply(self, population, fitness, best_idx, target_indices):
+        """Apply Lévy flight mutation (fully vectorized)."""
+        pop_size, dim = population.shape
+        
+        # Vectorized: select random indices for entire population
+        r1 = np.random.randint(0, pop_size, pop_size)
+        r2 = np.random.randint(0, pop_size, pop_size)
+        r3 = np.random.randint(0, pop_size, pop_size)
+        
+        # Ensure all indices are distinct
+        mask = (r1 == target_indices) | (r2 == target_indices) | (r3 == target_indices)
+        mask |= (r1 == r2) | (r1 == r3) | (r2 == r3)
+        
+        max_attempts = 100
+        attempt = 0
+        while np.any(mask) and attempt < max_attempts:
+            r1[mask] = np.random.randint(0, pop_size, np.sum(mask))
+            r2[mask] = np.random.randint(0, pop_size, np.sum(mask))
+            r3[mask] = np.random.randint(0, pop_size, np.sum(mask))
+            mask = (r1 == target_indices) | (r2 == target_indices) | (r3 == target_indices)
+            mask |= (r1 == r2) | (r1 == r3) | (r2 == r3)
+            attempt += 1
+        
+        # Generate Lévy flight step sizes for each individual and dimension
+        levy_steps = self._levy_flight(pop_size * dim).reshape(pop_size, dim)
+        
+        # Vectorized mutation with Lévy flight
+        # v_i = x_r1 + L(β) * (x_r2 - x_r3)
+        mutants = population[r1] + levy_steps * (population[r2] - population[r3])
+        
+        return mutants

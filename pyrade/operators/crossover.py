@@ -157,3 +157,119 @@ class UniformCrossover(CrossoverStrategy):
         # Vectorized crossover
         trials = np.where(crossover_mask, mutants, population)
         return trials
+
+
+class ArithmeticCrossover(CrossoverStrategy):
+    """
+    Arithmetic crossover: weighted linear combination of parent and mutant.
+    
+    Creates trial vectors as a weighted average: trial = alpha * mutant + (1-alpha) * parent
+    This creates offspring that lie on a line between parent and mutant vectors.
+    
+    Parameters
+    ----------
+    alpha : float, default=0.5
+        Weighting factor (0 <= alpha <= 1)
+        alpha=0.5 means equal weight to both
+        alpha=1.0 means take mutant entirely
+        alpha=0.0 means take parent entirely
+    adaptive : bool, default=False
+        If True, alpha is randomly sampled for each individual
+    
+    Notes
+    -----
+    Arithmetic crossover is useful for:
+    - Real-valued optimization (continuous domains)
+    - Maintaining feasibility when parents are feasible
+    - Smoother exploration of search space
+    - Better preservation of numerical properties
+    
+    Examples
+    --------
+    >>> crossover = ArithmeticCrossover(alpha=0.5)  # Equal blending
+    >>> crossover = ArithmeticCrossover(alpha=0.7, adaptive=True)  # Adaptive
+    """
+    
+    def __init__(self, alpha=0.5, adaptive=False):
+        if not 0 <= alpha <= 1:
+            raise ValueError("alpha must be in [0, 1]")
+        self.alpha = alpha
+        self.adaptive = adaptive
+    
+    def apply(self, population, mutants):
+        """Apply arithmetic crossover (fully vectorized)."""
+        pop_size, dim = population.shape
+        
+        if self.adaptive:
+            # Random alpha for each individual
+            alphas = np.random.uniform(0, 1, (pop_size, 1))
+            trials = alphas * mutants + (1 - alphas) * population
+        else:
+            # Fixed alpha for all
+            trials = self.alpha * mutants + (1 - self.alpha) * population
+        
+        return trials
+
+
+class ThreePointCrossover(CrossoverStrategy):
+    """
+    Three-point crossover: exchanges three segments between parent and mutant.
+    
+    Randomly selects three crossover points and alternates between parent and
+    mutant vectors. This creates more diverse offspring than single-point crossover.
+    
+    Process:
+    1. Select three random positions
+    2. Segment: [0:p1] from one, [p1:p2] from other, [p2:p3] from first, [p3:] from other
+    
+    Parameters
+    ----------
+    None
+    
+    Notes
+    -----
+    Three-point crossover is useful for:
+    - Maintaining building blocks of intermediate size
+    - More diversity than two-point crossover
+    - Better mixing of parent and mutant characteristics
+    - Discrete optimization problems
+    
+    The crossover ensures good mixing while preserving some contiguous
+    segments from both parents.
+    
+    Examples
+    --------
+    >>> crossover = ThreePointCrossover()
+    >>> trials = crossover.apply(population, mutants)
+    """
+    
+    def __init__(self):
+        pass
+    
+    def apply(self, population, mutants):
+        """Apply three-point crossover."""
+        pop_size, dim = population.shape
+        
+        if dim < 4:
+            # For very low dimensions, fall back to binomial
+            crossover_mask = np.random.rand(pop_size, dim) <= 0.5
+            j_rand = np.random.randint(0, dim, pop_size)
+            crossover_mask[np.arange(pop_size), j_rand] = True
+            return np.where(crossover_mask, mutants, population)
+        
+        trials = population.copy()
+        
+        for i in range(pop_size):
+            # Select three random crossover points
+            points = sorted(np.random.choice(dim - 1, size=3, replace=False) + 1)
+            p1, p2, p3 = points
+            
+            # Alternate between parent and mutant
+            # Segment 1: [0:p1] from mutant
+            trials[i, :p1] = mutants[i, :p1]
+            # Segment 2: [p1:p2] from parent (keep as is)
+            # Segment 3: [p2:p3] from mutant
+            trials[i, p2:p3] = mutants[i, p2:p3]
+            # Segment 4: [p3:] from parent (keep as is)
+        
+        return trials
