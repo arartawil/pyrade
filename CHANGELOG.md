@@ -5,6 +5,28 @@ All notable changes to PyRADE will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2025-12-18
+
+### Added
+- **Adaptive Population Size**: Dynamic population management with multiple strategies
+  - `linear-reduction`: Linearly reduce population size over iterations
+  - `lshade-like`: L-SHADE style exponential reduction
+  - `success-based`: Adapt based on improvement success rate
+  - `diversity-based`: Adjust based on population diversity metrics
+  - Automatic population resizing with best individual preservation
+- **Parameter Ensemble**: Mix multiple F and CR parameter settings
+  - Support for multiple mutation factor (F) values
+  - Support for multiple crossover rate (CR) values
+  - Uniform and adaptive sampling strategies
+  - Success-history based weight adaptation
+  - Real-time parameter effectiveness tracking
+- **New Example**: `adaptive_features_demo.py` demonstrating both features
+- **New Module**: `pyrade.utils.adaptation` containing adaptive mechanisms
+
+### Changed
+- Enhanced `pyrade.utils` module with adaptive capabilities
+- Updated version to 0.4.2
+
 ## [0.3.1] - 2025-12-09
 
 ### Added

@@ -1,5 +1,5 @@
 """
-Utility module containing boundary handling and termination criteria.
+Utility module containing boundary handling, termination criteria, and adaptive mechanisms.
 """
 
 from pyrade.utils.boundary import (
@@ -18,6 +18,10 @@ from pyrade.utils.termination import (
     MaxTime,
     FitnessVariance,
 )
+from pyrade.utils.adaptation import (
+    AdaptivePopulationSize,
+    ParameterEnsemble,
+)
 
 __all__ = [
     "BoundaryHandler",
@@ -32,4 +36,6 @@ __all__ = [
     "NoImprovement",
     "MaxTime",
     "FitnessVariance",
+    "AdaptivePopulationSize",
+    "ParameterEnsemble",
 ]

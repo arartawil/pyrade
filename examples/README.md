@@ -107,6 +107,38 @@ python visualization_examples.py
 
 Expected output: 11 PNG files demonstrating all visualization types
 
+### `adaptive_features_demo.py` ⭐ NEW in v0.4.2
+**Demonstrates adaptive mechanisms** - Shows how to use Adaptive Population Size and Parameter Ensemble features.
+
+**Features:**
+- Three demonstration examples showing different adaptive strategies
+- Adaptive Population Size with multiple strategies (linear-reduction, lshade-like, success-based, diversity-based)
+- Parameter Ensemble with uniform and adaptive sampling
+- Combined usage of both features
+- Comprehensive visualization of adaptation process
+
+**Usage:**
+```bash
+python adaptive_features_demo.py
+```
+
+**Output:**
+- `adaptive_population_demo.png` - Population sizing strategy comparison
+- `parameter_ensemble_demo.png` - Parameter weight evolution
+- `combined_adaptive_demo.png` - Combined features demonstration
+
+**Key Concepts:**
+- **Adaptive Population Size**: Dynamically adjusts population during optimization
+  - Reduces computational cost in later stages
+  - Maintains diversity when needed
+  - Multiple strategies for different problem types
+- **Parameter Ensemble**: Uses multiple F and CR values simultaneously
+  - Learns which parameters work best
+  - Adapts parameter weights based on success
+  - Improves robustness across different problem types
+
+Expected runtime: ~2-3 minutes
+
 ---
 
 ## Visualization API
