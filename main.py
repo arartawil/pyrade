@@ -79,6 +79,179 @@ VISUALIZATION_PRESET = 'all'  # Options: 'all', 'basic', 'research', 'none'
 
 
 # ============================================================================
+# ADAPTIVE FEATURES (v0.4.2) - Optional Advanced Settings
+# ============================================================================
+
+# These features can be used to enhance optimization performance by dynamically
+# adapting population size and parameters during the optimization process.
+
+# Option 1: Adaptive Population Size
+# -----------------------------------
+# Automatically reduces or adjusts population size during optimization.
+# Benefits: 30-50% faster convergence, reduced computational cost in later stages
+#
+# Example usage:
+"""
+from pyrade.utils import AdaptivePopulationSize
+
+# Create adaptive population controller
+aps = AdaptivePopulationSize(
+    initial_size=100,           # Starting population size
+    min_size=20,                # Minimum population (must be >= 4 for DE)
+    strategy='lshade-like',     # Strategy: 'linear-reduction', 'lshade-like', 'success-based', 'diversity-based'
+    reduction_rate=0.8          # How aggressively to reduce (0.0-1.0)
+)
+
+# Use in optimization loop:
+for generation in range(max_iterations):
+    # Update population size based on progress
+    new_size = aps.update(
+        generation=generation,
+        max_generations=max_iterations,
+        population=population,      # Current population array
+        fitness=fitness,            # Current fitness values
+        success_rate=success_rate   # Optional: improvement rate
+    )
+    
+    # Check if resizing is needed
+    should_resize, target_size = aps.should_resize(len(population))
+    if should_resize:
+        # Resize population (keeps best individuals when reducing)
+        population, fitness = aps.resize_population(
+            population, fitness, target_size
+        )
+    
+    # ... rest of DE operations (mutation, crossover, selection)
+"""
+
+# Option 2: Parameter Ensemble
+# -----------------------------
+# Uses multiple F and CR parameter combinations simultaneously, with adaptive
+# selection based on success history.
+# Benefits: More robust across problems, automatic parameter tuning
+#
+# Example usage:
+"""
+from pyrade.utils import ParameterEnsemble
+
+# Create parameter ensemble
+ensemble = ParameterEnsemble(
+    F_values=[0.4, 0.6, 0.8, 1.0],           # Pool of mutation factors
+    CR_values=[0.1, 0.3, 0.5, 0.7, 0.9],     # Pool of crossover rates
+    strategy='adaptive',                      # 'uniform', 'adaptive', or 'random'
+    learning_period=25                        # Generations between weight updates
+)
+
+# Use in optimization loop:
+for generation in range(max_iterations):
+    # Sample parameters for entire population (each individual gets its own F and CR)
+    F_array, CR_array, F_indices, CR_indices = ensemble.sample(pop_size)
+    
+    successful_indices = []
+    
+    # Apply DE operations with individual parameters
+    for i in range(pop_size):
+        # Mutation with individual F_array[i]
+        mutant = population[r1] + F_array[i] * (population[r2] - population[r3])
+        
+        # Crossover with individual CR_array[i]
+        trial = crossover(population[i], mutant, CR_array[i])
+        
+        # Selection
+        if trial_fitness < fitness[i]:
+            population[i] = trial
+            fitness[i] = trial_fitness
+            successful_indices.append(i)  # Track success
+    
+    # Update ensemble weights based on which parameters worked
+    ensemble.update_success(
+        np.array(successful_indices),
+        F_indices,
+        CR_indices
+    )
+    
+    # Optionally check statistics every N generations
+    if generation % 50 == 0:
+        stats = ensemble.get_statistics()
+        print(f"Gen {generation}: F weights = {stats['F_weights']}")
+        print(f"Gen {generation}: CR weights = {stats['CR_weights']}")
+"""
+
+# Option 3: Combined Usage (Maximum Adaptivity)
+# ----------------------------------------------
+# Use both features together for best results
+#
+# Example usage:
+"""
+from pyrade.utils import AdaptivePopulationSize, ParameterEnsemble
+import numpy as np
+
+# Setup both mechanisms
+aps = AdaptivePopulationSize(
+    initial_size=120,
+    min_size=30,
+    strategy='lshade-like'
+)
+
+ensemble = ParameterEnsemble(
+    F_values=[0.5, 0.7, 0.9],
+    CR_values=[0.1, 0.5, 0.9],
+    strategy='adaptive',
+    learning_period=20
+)
+
+# Initialize
+pop_size = aps.initial_size
+population = np.random.uniform(lower, upper, (pop_size, dim))
+fitness = np.array([objective(ind) for ind in population])
+
+# Main optimization loop
+for generation in range(max_iterations):
+    current_pop_size = len(population)
+    
+    # 1. Sample parameters from ensemble
+    F_array, CR_array, F_indices, CR_indices = ensemble.sample(current_pop_size)
+    
+    successful_indices = []
+    
+    # 2. DE operations with individual parameters
+    for i in range(current_pop_size):
+        # ... mutation with F_array[i]
+        # ... crossover with CR_array[i]
+        # ... selection and track successes
+        pass
+    
+    # 3. Update ensemble
+    ensemble.update_success(
+        np.array(successful_indices),
+        F_indices,
+        CR_indices
+    )
+    
+    # 4. Update population size
+    success_rate = len(successful_indices) / current_pop_size
+    new_size = aps.update(
+        generation=generation,
+        max_generations=max_iterations,
+        population=population,
+        fitness=fitness,
+        success_rate=success_rate
+    )
+    
+    # 5. Resize if needed
+    should_resize, target_size = aps.should_resize(len(population))
+    if should_resize:
+        population, fitness = aps.resize_population(
+            population, fitness, target_size
+        )
+        print(f"Generation {generation}: Resized to {target_size}")
+
+# For a complete working example, run:
+# python examples/adaptive_features_demo.py
+"""
+
+
+# ============================================================================
 # RUN EXPERIMENTS
 # ============================================================================
 
