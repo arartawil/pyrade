@@ -47,7 +47,26 @@ PyRADE's vectorized implementation significantly outperforms traditional loop-ba
 
 *Average speedup: **4.1x** without sacrificing code quality!*
 
+![PyRADE Architecture](docs/image.png)
+
 ## 📦 Installation
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## �📦 Installation
 
 ### From PyPI (Recommended)
 ```bash
@@ -358,7 +377,6 @@ for generation in range(max_iterations):
 
 ### Parameter Ensemble
 
-Mix multiple F (mutation factor) and CR (crossover rate) parameter combinations simultaneously, with adaptive selection based on success history.
 
 **Available Strategies:**
 - **`uniform`**: Equal probability for all parameter combinations
