@@ -2,6 +2,8 @@
 
 **Python Rapid Algorithm for Differential Evolution**
 
+![PyRADE Architecture](docs/image.png)
+
 A high-performance, modular Differential Evolution (DE) optimization package that demonstrates how clean OOP architecture can **outperform** monolithic implementations through aggressive vectorization.
 
 [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
@@ -46,8 +48,6 @@ PyRADE's vectorized implementation significantly outperforms traditional loop-ba
 | Ackley | 20 | 0.51s | 2.08s | **4.1x** |
 
 *Average speedup: **4.1x** without sacrificing code quality!*
-
-![PyRADE Architecture](docs/image.png)
 
 ## 📦 Installation
 
