@@ -14,7 +14,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="pyrade",
-    version="0.3.1",
+    version="0.4.4",
     author="PyRADE Contributors",
     author_email="arartawil@gmail.com",
     description="High-performance, modular Differential Evolution optimization",
